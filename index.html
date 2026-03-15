@@ -1,45 +1,721 @@
-<!--
-  Hit RUN to see this project in action!
-  
-  This project will auto-refresh as you edit the HTML, CSS and JS. See README.md for more info (including how to disable auto-refresh and install packages).
--->
 
-<!DOCTYPE html>
-<html>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Share+Tech+Mono&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Barlow:wght@300;400;500&display=swap');
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>Replit</title>
-  <link href="style.css" rel="stylesheet" type="text/css" />
-</head>
+:root {
+  --ink: #18160f;
+  --ink2: #3d3a30;
+  --ink3: #7a766a;
+  --ink4: #b0ac9f;
+  --paper: #F6F3ED;
+  --paper2: #EDE9E0;
+  --paper3: #E3DED3;
+  --accent: #C94A12;
+  --accent2: #8B3009;
+  --rule: #ccc8bd;
+}
 
-<body>
-  <main>
-    <h1 class="title">Welcome to HTML on Replit!</h1>
-    <p class="description">Get started by editing
-      <code class="code">index.html</code>. The webview will auto-refresh as you edit! (See <code
-        class="code">README.md</code> if you want to
-      disable auto-refresh.)
-    </p>
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-    <section class="grid">
-      <a href="https://replit.com/learn" class='card'>
-        <h2>Learn &rarr;</h2>
-        <p>Find tutorials on Replit to learn more.</p>
-      </a>
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Libre Baskerville', serif;
+  -webkit-font-smoothing: antialiased;
+}
 
-      <a href="https://docs.replit.com/category/deployments" class='card'>
-        <h2>Deploy &rarr;</h2>
-        <p>
-          After you are happy with this app, deploy it on Replit!
-        </p>
-      </a>
-    </section>
-  </main>
+/* ── GRAIN OVERLAY ── */
+#grain {
+  position: fixed; inset: 0; pointer-events: none; z-index: 100; opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px;
+}
 
-  <script type="module" src="script.js"></script>
+/* ── MASTHEAD ── */
+#masthead {
+  border-bottom: 2.5px solid var(--ink);
+  padding: 0 0 0;
+}
+.mast-top {
+  display: flex; align-items: stretch;
+  border-bottom: 0.5px solid var(--rule);
+}
+.mast-left {
+  padding: 14px 20px;
+  border-right: 0.5px solid var(--rule);
+  flex: 1;
+  display: flex; align-items: center; gap: 16px;
+}
+.mast-nav {
+  display: flex; gap: 20px; flex-wrap: wrap;
+}
+.mast-nav a {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; letter-spacing: 0.16em;
+  color: var(--ink3); text-decoration: none;
+  transition: color 0.2s;
+  cursor: pointer;
+}
+.mast-nav a:hover, .mast-nav a.on { color: var(--accent); }
+.mast-center {
+  padding: 12px 28px;
+  text-align: center;
+  flex: 0 0 auto;
+}
+.mast-name {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900; font-size: clamp(26px,4vw,44px);
+  letter-spacing: -0.03em; color: var(--ink); line-height: 1;
+}
+.mast-name span { color: var(--accent); }
+.mast-tagline {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7.5px; letter-spacing: 0.2em;
+  color: var(--ink4); margin-top: 4px;
+}
+.mast-right {
+  padding: 14px 20px; text-align: right;
+  border-left: 0.5px solid var(--rule);
+  flex: 1; display: flex; align-items: center; justify-content: flex-end;
+}
+.mast-date {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; letter-spacing: 0.12em; color: var(--ink4);
+  line-height: 1.7;
+}
 
-</body>
+.mast-kicker {
+  padding: 7px 20px;
+  display: flex; gap: 28px;
+}
+.kicker-item {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7.5px; letter-spacing: 0.14em; color: var(--ink3);
+  cursor: pointer;
+}
+.kicker-item.hot { color: var(--accent); }
 
-</html>
+/* ── HERO BAND ── */
+#hero-band {
+  border-bottom: 0.5px solid var(--rule);
+  display: grid;
+  grid-template-columns: 1fr 320px;
+}
+#hero-left { padding: 36px 28px 32px; border-right: 0.5px solid var(--rule); }
+#hero-right { padding: 28px 20px; background: var(--paper2); }
+
+.review-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; letter-spacing: 0.22em; color: var(--accent);
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.review-label::after { content:''; flex:1; height:0.5px; background:var(--accent); opacity:0.35; }
+
+.hero-hed {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900; font-style: italic;
+  font-size: clamp(36px, 5.5vw, 68px);
+  line-height: 0.93; letter-spacing: -0.025em;
+  color: var(--ink); margin-bottom: 6px;
+}
+.hero-hed em { font-style: normal; color: var(--accent); }
+
+.hero-dek {
+  font-family: 'Playfair Display', serif;
+  font-style: italic; font-weight: 400;
+  font-size: clamp(15px, 1.9vw, 20px);
+  color: var(--ink2); line-height: 1.5;
+  margin-bottom: 20px; max-width: 540px;
+}
+
+.byline-row {
+  display: flex; align-items: center;
+  gap: 14px; padding-top: 14px;
+  border-top: 0.5px solid var(--rule);
+}
+.byline-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--ink); display: flex; align-items: center;
+  justify-content: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; color: var(--paper); letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+.byline-name {
+  font-family: 'Barlow', sans-serif;
+  font-weight: 500; font-size: 12px; color: var(--ink);
+}
+.byline-role {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7.5px; letter-spacing: 0.12em;
+  color: var(--ink4); margin-top: 2px;
+}
+.byline-sep { color: var(--rule); font-size: 10px; }
+.byline-date {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7.5px; letter-spacing: 0.1em; color: var(--ink4);
+}
+
+/* Score panel */
+.score-panel { height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+.score-panel-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; letter-spacing: 0.2em; color: var(--accent);
+  margin-bottom: 12px;
+}
+.score-giant {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900; font-size: clamp(72px,12vw,110px);
+  line-height: 1; letter-spacing: -0.04em; color: var(--ink);
+}
+.score-giant span { color: var(--accent); }
+.score-slash { font-size: 0.45em; color: var(--ink4); vertical-align: middle; }
+.score-track {
+  height: 3px; background: var(--paper3);
+  margin: 12px 0 8px; position: relative;
+}
+.score-fill {
+  height: 100%; background: var(--ink);
+  width: 0%; transition: width 1.6s cubic-bezier(0.2,0,0,1);
+  position: relative;
+}
+.score-fill::after {
+  content: ''; position: absolute; right: -4px; top: -4.5px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent);
+}
+.score-meta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; letter-spacing: 0.1em; color: var(--ink4);
+}
+.score-meta strong { color: var(--ink); font-weight: 400; }
+.score-verdict {
+  margin-top: 14px; padding-top: 14px;
+  border-top: 0.5px solid var(--rule);
+}
+.score-verdict-q {
+  font-family: 'Playfair Display', serif;
+  font-style: italic; font-size: 14px;
+  color: var(--ink2); line-height: 1.55;
+  margin-bottom: 8px;
+}
+.score-verdict-attr {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7.5px; letter-spacing: 0.1em; color: var(--ink4);
+}
+
+/* ── BODY ── */
+#body-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  border-bottom: 0.5px solid var(--rule);
+}
+
+/* Main column */
+#main-col { border-right: 0.5px solid var(--rule); }
+
+.body-section { padding: 28px 28px; border-bottom: 0.5px solid var(--rule); }
+
+.section-hed {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700; font-size: 15px;
+  letter-spacing: -0.01em; color: var(--ink);
+  padding-bottom: 8px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--ink);
+  display: flex; align-items: baseline; gap: 12px;
+}
+.section-hed span {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7.5px; letter-spacing: 0.14em; color: var(--ink4);
+  font-weight: 400;
+}
+
+.body-p {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 14px; line-height: 1.85;
+  color: var(--ink2); margin-bottom: 14px;
+}
+.body-p:last-child { margin-bottom: 0; }
+
+.pull-quote {
+  border-left: 3px solid var(--accent);
+  margin: 20px 0; padding: 10px 18px;
+  background: var(--paper2);
+}
+.pq-text {
+  font-family: 'Playfair Display', serif;
+  font-style: italic; font-size: 17px;
+  color: var(--ink); line-height: 1.5;
+  margin-bottom: 6px;
+}
+.pq-attr {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7.5px; letter-spacing: 0.12em; color: var(--ink4);
+}
+
+/* Dim breakdown in main */
+.dim-table { width: 100%; }
+.dim-t-row {
+  display: grid; grid-template-columns: 1fr 80px 100px;
+  padding: 11px 0; border-bottom: 0.5px solid var(--paper3);
+  align-items: center; cursor: pointer;
+  transition: background 0.15s;
+  opacity: 0; transform: translateX(-8px);
+  transition: opacity 0.4s, transform 0.4s, background 0.15s;
+}
+.dim-t-row.show { opacity: 1; transform: translateX(0); }
+.dim-t-row:hover { background: var(--paper2); margin: 0 -28px; padding: 11px 28px; }
+.dim-t-name {
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px; font-weight: 500; color: var(--ink);
+}
+.dim-t-bar-wrap { display: flex; align-items: center; gap: 6px; }
+.dim-t-track { flex: 1; height: 2px; background: var(--paper3); }
+.dim-t-fill { height: 100%; width: 0%; transition: width 1s cubic-bezier(0.2,0,0,1); }
+.dim-t-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.dim-t-score {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700; font-size: 20px;
+  color: var(--ink); letter-spacing: -0.02em;
+}
+.dim-t-tier {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7px; letter-spacing: 0.1em;
+  padding: 2px 6px; border-width: 0.5px; border-style: solid;
+}
+
+.dim-expand {
+  grid-column: 1/-1;
+  font-family: 'Libre Baskerville', serif;
+  font-style: italic; font-size: 11.5px;
+  color: var(--ink3); line-height: 1.6;
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s, padding 0.3s;
+  opacity: 0; padding-top: 0;
+}
+.dim-t-row.expanded .dim-expand { max-height: 80px; opacity: 1; padding-top: 8px; }
+
+/* Signal sidebar */
+#side-col { padding: 0; }
+
+.side-block {
+  padding: 20px 18px;
+  border-bottom: 0.5px solid var(--rule);
+}
+.side-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; letter-spacing: 0.18em;
+  color: var(--accent); margin-bottom: 12px;
+  padding-bottom: 8px; border-bottom: 0.5px solid var(--rule);
+}
+
+.cluster-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-bottom: 12px; padding-bottom: 12px;
+  border-bottom: 0.5px solid var(--paper3);
+  cursor: default;
+}
+.cluster-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.cluster-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+.cluster-name {
+  font-family: 'Barlow', sans-serif;
+  font-weight: 500; font-size: 11px; color: var(--ink);
+  line-height: 1.3; margin-bottom: 2px;
+}
+.cluster-read {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7.5px; letter-spacing: 0.06em; color: var(--ink4);
+  line-height: 1.5;
+}
+
+.stat-row {
+  display: flex; justify-content: space-between;
+  align-items: baseline; padding: 7px 0;
+  border-bottom: 0.5px solid var(--paper3);
+}
+.stat-row:last-child { border-bottom: none; }
+.stat-name {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; letter-spacing: 0.1em; color: var(--ink3);
+}
+.stat-val {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700; font-size: 16px; color: var(--ink);
+  letter-spacing: -0.02em;
+}
+.stat-val.accent { color: var(--accent); }
+
+.controversy-item {
+  margin-bottom: 12px; padding-bottom: 12px;
+  border-bottom: 0.5px solid var(--paper3);
+}
+.controversy-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.con-versus {
+  font-family: 'Barlow', sans-serif;
+  font-weight: 500; font-size: 11px; color: var(--ink);
+  margin-bottom: 3px;
+}
+.con-sym { color: var(--accent); font-size: 10px; }
+.con-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7.5px; letter-spacing: 0.08em; color: var(--ink4);
+}
+.con-bar { height: 2px; background: var(--paper3); margin-top: 6px; }
+.con-fill { height: 100%; background: var(--accent); width: 0%; transition: width 1s cubic-bezier(0.2,0,0,1); }
+
+/* ── FOOTER ── */
+#foot {
+  border-top: 2.5px solid var(--ink);
+  padding: 20px 28px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 28px;
+}
+.foot-col {}
+.foot-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900; font-size: 18px;
+  letter-spacing: -0.02em; color: var(--ink);
+  margin-bottom: 6px;
+}
+.foot-title span { color: var(--accent); }
+.foot-body {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; letter-spacing: 0.1em;
+  color: var(--ink4); line-height: 1.8;
+}
+.foot-links { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.foot-link {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; letter-spacing: 0.1em;
+  color: var(--ink3); cursor: pointer; transition: color 0.2s;
+  text-decoration: none;
+}
+.foot-link:hover { color: var(--accent); }
+.foot-rule { height: 0.5px; background: var(--rule); margin: 8px 0; }
+
+/* Animations */
+.fade-up { opacity:0; transform:translateY(10px); transition:opacity 0.6s ease, transform 0.6s ease; }
+.fade-up.show { opacity:1; transform:translateY(0); }
+
+.fade-in { opacity:0; transition:opacity 0.5s ease; }
+.fade-in.show { opacity:1; }
+</style>
+
+<div id="grain"></div>
+<div id="page">
+
+<!-- MASTHEAD -->
+<div id="masthead" class="fade-in">
+  <div class="mast-top">
+    <div class="mast-left">
+      <div class="mast-nav">
+        <a class="on">Hip-Hop</a><a>R&B</a><a>Pop</a><a>Industry</a><a>Controversy</a><a>Archive</a>
+      </div>
+    </div>
+    <div class="mast-center">
+      <div class="mast-name">The Signal<span>.</span></div>
+      <div class="mast-tagline">ERA Labs · Audience Intelligence Review</div>
+    </div>
+    <div class="mast-right">
+      <div class="mast-date">
+        Vol. 1, No. 4<br>
+        March 2026<br>
+        People's Score Edition
+      </div>
+    </div>
+  </div>
+  <div class="mast-kicker">
+    <span class="kicker-item hot">⚡ 4 Active Controversy Zones</span>
+    <span class="kicker-item">832 Audience Voices Analyzed</span>
+    <span class="kicker-item">10 Cluster Breakdown</span>
+    <span class="kicker-item">J. Cole · The Fall Off</span>
+  </div>
+</div>
+
+<!-- HERO BAND -->
+<div id="hero-band" class="fade-up">
+  <div id="hero-left">
+    <div class="review-label">People's Score Review — Hip-Hop</div>
+    <div class="hero-hed">The Fall<br>Off.<br><em>J. Cole.</em></div>
+    <div class="hero-dek">
+      The debate was never really about the album. It was about whether Cole could still occupy the center of a conversation that has moved on without him.
+    </div>
+    <div class="byline-row">
+      <div class="byline-avatar">TS</div>
+      <div>
+        <div class="byline-name">The Signal Staff</div>
+        <div class="byline-role">Era Labs · Audience Intelligence</div>
+      </div>
+      <span class="byline-sep">·</span>
+      <div class="byline-date">March 15, 2026 · 8 min read</div>
+    </div>
+  </div>
+  <div id="hero-right">
+    <div class="score-panel">
+      <div>
+        <div class="score-panel-label">People's Score</div>
+        <div class="score-giant"><span id="score-num">0.0</span><span class="score-slash"> /10</span></div>
+        <div class="score-track"><div class="score-fill" id="score-fill"></div></div>
+        <div class="score-meta">Based on <strong id="comment-count">0</strong> audience comments</div>
+      </div>
+      <div class="score-verdict">
+        <div class="score-verdict-q">"The bars are there. They always are. That's no longer the argument."</div>
+        <div class="score-verdict-attr">ERA Signal · Critic's Read</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BODY GRID -->
+<div id="body-grid">
+  <div id="main-col">
+
+    <!-- Critic's Read -->
+    <div class="body-section fade-up">
+      <div class="section-hed">The Critic's Read <span>Editorial analysis</span></div>
+      <div class="body-p">J. Cole has always operated on a different clock than his peers. Where Kendrick chases mythology and Drake manufactures moments, Cole has been building something closer to a body of work — a catalog of quiet precision that resists the tyranny of the timeline. The Fall Off, whatever form it eventually takes, has been the longest conceptual setup in recent hip-hop memory.</div>
+      <div class="pull-quote">
+        <div class="pq-text">"Lyrical precision at 9.0 is not the flex it used to be. The room has changed. The argument has changed. Cole hasn't — and that's both the album's greatest strength and its most honest limitation."</div>
+        <div class="pq-attr">The Signal · People's Score Analysis</div>
+      </div>
+      <div class="body-p">What the audience data reveals, with uncomfortable clarity, is that Cole's core competency — the bars, the internal rhyme schemes, the methodical bar construction — lands near-elite across every cluster. Nobody disputes the craft. What divides the audience is everything else: whether the emotional register has evolved, whether the production choices reflect ambition or comfort, and most pressingly, whether the album says anything that needed to be said in 2026.</div>
+      <div class="body-p">The Cultural Impact score of 7.0 is the number that will haunt this record. It isn't bad. It's the wrong kind of good — it suggests an audience that respects Cole without being moved by him, which is the most dangerous place an artist of his ambition can occupy.</div>
+    </div>
+
+    <!-- Dimension Breakdown -->
+    <div class="body-section fade-up" id="dims-section">
+      <div class="section-hed">Dimension Breakdown <span>Tap any row to expand signal read</span></div>
+      <div id="dim-table"></div>
+    </div>
+
+    <!-- What the Clusters Say -->
+    <div class="body-section fade-up">
+      <div class="section-hed">What the Clusters Say <span>Audience signal analysis</span></div>
+      <div class="body-p">The most instructive split in the data is between the Lyrical Analysis cluster — which rates this album near the top of Cole's catalog — and the Ranking with Recency Bias cluster, which processed the same release and arrived somewhere considerably more ambivalent. This is not a contradiction. It is the album's central tension made visible.</div>
+      <div class="pull-quote">
+        <div class="pq-text">"Album Structure at 6.0 is where the fracture lives. The back half loses people who came in fully converted. That's a sequencing problem, not a talent problem."</div>
+        <div class="pq-attr">Skeptical War Commentators · Cluster Signal</div>
+      </div>
+      <div class="body-p">The Nostalgic Rap Critics, predictably, are the loudest friction point. Their discourse sets everything against 1994 — a benchmark Cole has never claimed and doesn't need. But their presence in the conversation shapes how casual listeners frame their own uncertainty. When authoritative voices express ambivalence, permission to be disappointed spreads.</div>
+      <div class="body-p">The Emotional Moments cluster is the sleeper story in this dataset. These are the listeners for whom Cole's music functions as personal documentation — and they score Emotional Depth at 8.5, the highest cluster-specific score in the entire analysis. This is where the album's legacy will actually be built, quietly, over years.</div>
+    </div>
+
+    <!-- The Verdict -->
+    <div class="body-section fade-up">
+      <div class="section-hed">The Verdict <span>Final signal read</span></div>
+      <div class="body-p">A 7.6 is not a disappointment. It is a precise measurement of an artist at the peak of one kind of excellence, being asked whether that excellence is still the right kind. The audience's answer is nuanced, which means it is honest, which means it is the most interesting possible outcome.</div>
+      <div class="body-p">The bars will always be there. The question The Fall Off leaves open — the question every subsequent listen will try to answer — is whether bars are still the point.</div>
+      <div class="pull-quote">
+        <div class="pq-text">"7.6 / 10. The craft is elite. The moment is complicated. Both things are true, and the distance between them is where the album actually lives."</div>
+        <div class="pq-attr">The Signal · Final Verdict · 832 voices</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SIDEBAR -->
+  <div id="side-col">
+
+    <div class="side-block fade-in">
+      <div class="side-label">Signal at a Glance</div>
+      <div class="stat-row"><span class="stat-name">Overall Score</span><span class="stat-val accent" id="glance-score">—</span></div>
+      <div class="stat-row"><span class="stat-name">Voices Analyzed</span><span class="stat-val">832</span></div>
+      <div class="stat-row"><span class="stat-name">Clusters Mapped</span><span class="stat-val">10</span></div>
+      <div class="stat-row"><span class="stat-name">Narrative Bridges</span><span class="stat-val">17</span></div>
+      <div class="stat-row"><span class="stat-name">Controversy Zones</span><span class="stat-val accent">4</span></div>
+      <div class="stat-row"><span class="stat-name">Peak Dimension</span><span class="stat-val" style="font-size:13px">Lyrical</span></div>
+      <div class="stat-row"><span class="stat-name">Weak Dimension</span><span class="stat-val" style="font-size:13px">Structure</span></div>
+    </div>
+
+    <div class="side-block fade-in">
+      <div class="side-label">Audience Clusters</div>
+      <div id="cluster-list"></div>
+    </div>
+
+    <div class="side-block fade-in">
+      <div class="side-label">Active Controversy Zones</div>
+      <div id="controversy-list"></div>
+    </div>
+
+    <div class="side-block fade-in">
+      <div class="side-label">Related Scores</div>
+      <div class="stat-row"><span class="stat-name">KOD (2018)</span><span class="stat-val">8.4</span></div>
+      <div class="stat-row"><span class="stat-name">The Off-Season</span><span class="stat-val">8.1</span></div>
+      <div class="stat-row"><span class="stat-name">4 Your Eyez Only</span><span class="stat-val">8.7</span></div>
+      <div class="stat-row"><span class="stat-name">2014 Forest Hills</span><span class="stat-val">9.1</span></div>
+      <div class="stat-row"><span class="stat-name">Born Sinner</span><span class="stat-val">7.8</span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div id="foot" class="fade-in">
+  <div class="foot-col">
+    <div class="foot-title">The Signal<span>.</span></div>
+    <div class="foot-body">
+      Applied Computational<br>Market Intelligence<br>by ERA Labs
+    </div>
+    <div class="foot-rule"></div>
+    <div class="foot-body">
+      Vol. 1, No. 4 · March 2026<br>
+      People's Score Edition
+    </div>
+  </div>
+  <div class="foot-col">
+    <div class="foot-body" style="color:var(--ink3);font-size:9px;letter-spacing:0.12em;margin-bottom:10px;">NAVIGATE</div>
+    <div class="foot-links">
+      <a class="foot-link">Hip-Hop Reviews</a>
+      <a class="foot-link">R&B Analysis</a>
+      <a class="foot-link">Controversy Reports</a>
+      <a class="foot-link">Artist Profiles</a>
+      <a class="foot-link">The Archive</a>
+      <a class="foot-link">Subscribe</a>
+    </div>
+  </div>
+  <div class="foot-col">
+    <div class="foot-body" style="color:var(--ink3);font-size:9px;letter-spacing:0.12em;margin-bottom:10px;">THE SIGNAL IS</div>
+    <div class="foot-body">
+      A media brand with a point of view. We let the audience be the critic. We do the math.<br><br>
+      ERA Labs · eralabs.io<br>
+      signal@eralabs.io
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const DIMS = [
+  { name:"Lyrical Quality",    score:9.0, comments:8, color:"#2d7a2d", tierText:"Elite",    tierColor:"#2d7a2d", tierBg:"rgba(45,122,45,0.08)",
+    read:"Near-unanimous praise across all clusters. Cole's internal rhyme density and syllabic precision score highest of any dimension. The close readers built entire thread ecosystems around specific bars." },
+  { name:"Emotional Depth",    score:8.5, comments:8, color:"#1a6b5a", tierText:"Strong",   tierColor:"#1a6b5a", tierBg:"rgba(26,107,90,0.08)",
+    read:"The Emotional Moments cluster drives this score disproportionately. Their 8.5 average reflects listeners for whom Cole's music functions as personal documentation — loss, growth, fatherhood." },
+  { name:"Storytelling",       score:8.0, comments:8, color:"#2a5f8a", tierText:"Notable",  tierColor:"#2a5f8a", tierBg:"rgba(42,95,138,0.08)",
+    read:"The narrative arc across the album's first half is widely praised. Long-form engagement is the highest ERA has recorded for a Cole release. The back half is where the narrative loses people." },
+  { name:"Production Quality", score:7.5, comments:8, color:"#C94A12", tierText:"Solid",    tierColor:"#C94A12", tierBg:"rgba(201,74,18,0.08)",
+    read:"The Production Appreciation cluster is the swing vote here. Their 7.2 reflects appreciation for craft alongside a nagging sense that the sonic choices play it safer than the lyricism warrants." },
+  { name:"Replay Value",       score:7.5, comments:8, color:"#7a6018", tierText:"Solid",    tierColor:"#7a6018", tierBg:"rgba(122,96,24,0.08)",
+    read:"Late-night listening patterns dominate the replay conversation. The album accrues meaning over time — an intentional design choice that rewards patience and punishes casual engagement." },
+  { name:"Cultural Impact",    score:7.0, comments:8, color:"#6b3f8a", tierText:"Mixed",    tierColor:"#6b3f8a", tierBg:"rgba(107,63,138,0.08)",
+    read:"The most contested score in the analysis. Cole's cultural significance is unquestioned — what divides audiences is whether this album advances or consolidates that position." },
+  { name:"Album Structure",    score:6.0, comments:8, color:"#8a2a2a", tierText:"Divisive", tierColor:"#8a2a2a", tierBg:"rgba(138,42,42,0.08)",
+    read:"The back half sequencing is where the album loses its most committed listeners. Nostalgic Rap Critics are the loudest voices here — but even core fans express structural ambivalence." },
+];
+
+const CLUSTERS = [
+  { name:"J. Cole Appreciation Fans", color:"#7ecb45", read:"94% loyalty · Devotional core" },
+  { name:"Lyrical Analysis",          color:"#10b981", read:"91% depth · Close readers" },
+  { name:"Nostalgic Rap Critics",      color:"#22d3ee", read:"High friction · Benchmarkers" },
+  { name:"Emotional Moments",          color:"#f59e0b", read:"9.1x reach · Converters" },
+  { name:"Production Appreciation",    color:"#eab308", read:"↑44% growth · Sonic analysts" },
+  { name:"Industry Insights",          color:"#a78bfa", read:"Elite signal · Chess players" },
+];
+
+const CONTROVERSIES = [
+  { a:"J Cole Enthusiasts", b:"Nostalgic Rap Critics", tension:82, label:"HIGH TENSION" },
+  { a:"Lyrical Analysis",   b:"Recency Bias",          tension:68, label:"HIGH TENSION" },
+  { a:"Production",         b:"Industry Insights",     tension:54, label:"MODERATE" },
+  { a:"Album Comparisons",  b:"Emotional Moments",     tension:41, label:"EMERGING" },
+];
+
+// Build dim table
+function buildDims() {
+  const t = document.getElementById('dim-table');
+  t.innerHTML = '';
+  DIMS.forEach((d,i) => {
+    const row = document.createElement('div');
+    row.className = 'dim-t-row';
+    row.id = `dt-${i}`;
+    row.innerHTML = `
+      <div class="dim-t-name">${d.name}</div>
+      <div class="dim-t-bar-wrap">
+        <div class="dim-t-track"><div class="dim-t-fill" id="dtf-${i}" style="background:${d.color}"></div></div>
+      </div>
+      <div class="dim-t-right">
+        <div class="dim-t-score" style="color:${d.color}">${d.score.toFixed(1)}</div>
+        <div class="dim-t-tier" style="color:${d.tierColor};border-color:${d.tierColor};background:${d.tierBg}">${d.tierText}</div>
+      </div>
+      <div class="dim-expand">${d.read}</div>`;
+    row.addEventListener('click', ()=>row.classList.toggle('expanded'));
+    t.appendChild(row);
+  });
+}
+
+function buildClusters() {
+  const c = document.getElementById('cluster-list');
+  c.innerHTML = '';
+  CLUSTERS.forEach(cl => {
+    c.innerHTML += `<div class="cluster-item">
+      <div class="cluster-dot" style="background:${cl.color}"></div>
+      <div><div class="cluster-name">${cl.name}</div><div class="cluster-read">${cl.read}</div></div>
+    </div>`;
+  });
+}
+
+function buildControversies() {
+  const c = document.getElementById('controversy-list');
+  c.innerHTML = '';
+  CONTROVERSIES.forEach((cv,i) => {
+    c.innerHTML += `<div class="controversy-item">
+      <div class="con-versus">${cv.a} <span class="con-sym">↔</span> ${cv.b}</div>
+      <div class="con-label">${cv.label} · ${cv.tension}% tension</div>
+      <div class="con-bar"><div class="con-fill" id="cf-${i}" style="width:0%"></div></div>
+    </div>`;
+  });
+  setTimeout(()=>{
+    CONTROVERSIES.forEach((_,i)=>{
+      const f = document.getElementById(`cf-${i}`);
+      if(f) f.style.width = CONTROVERSIES[i].tension+'%';
+    });
+  }, 2400);
+}
+
+function animateScore(target) {
+  let cur = 0; const inc = target/70;
+  const el = document.getElementById('score-num');
+  const fill = document.getElementById('score-fill');
+  document.getElementById('glance-score').textContent = target.toFixed(1);
+  fill.style.width = (target/10*100)+'%';
+  const id = setInterval(()=>{
+    cur = Math.min(cur+inc, target);
+    el.textContent = cur.toFixed(1);
+    if(cur>=target) clearInterval(id);
+  }, 22);
+}
+
+function animateCounter(target) {
+  let cur=0; const step=Math.ceil(target/55);
+  const el=document.getElementById('comment-count');
+  const id=setInterval(()=>{
+    cur=Math.min(cur+step,target); el.textContent=cur.toLocaleString();
+    if(cur>=target) clearInterval(id);
+  },18);
+}
+
+function runPage() {
+  buildDims(); buildClusters(); buildControversies();
+
+  // Staggered reveals
+  const fadeEls = document.querySelectorAll('.fade-in, .fade-up');
+  fadeEls.forEach((el,i)=>{ setTimeout(()=>el.classList.add('show'), 80+i*60); });
+
+  setTimeout(()=>{ animateScore(7.6); animateCounter(832); }, 600);
+
+  setTimeout(()=>{
+    DIMS.forEach((_,i)=>{
+      setTimeout(()=>{
+        const row = document.getElementById(`dt-${i}`);
+        if(row) row.classList.add('show');
+        setTimeout(()=>{
+          const f = document.getElementById(`dtf-${i}`);
+          if(f) f.style.width = (DIMS[i].score/10*100)+'%';
+        },180);
+      }, i*110);
+    });
+  }, 1400);
+}
+
+runPage();
+</script>
