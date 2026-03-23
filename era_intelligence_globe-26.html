@@ -2324,7 +2324,7 @@ function buildTicker(items){
       '<span class="tick-src"> · '+it.src+'</span>'+
       '</span>';
   }).join('');
-  var dur=Math.max(45,Math.min(100,items.reduce(function(s,i){return s+i.text.length;},0)*0.2));
+  el.style.animationDuration='18s';
   el.style.animationDuration=dur+'s';
 }
 /* Try rss2json first (fast), cascade to allorigins if it fails */
