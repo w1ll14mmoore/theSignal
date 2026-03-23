@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+/>
+<title>The Signal — Defend the Strait</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,900;1,900&family=Share+Tech+Mono&family=Barlow:wght@300;400;500;600;700&display=swap");
+
+:root{
+  --bg:#020904;
+  --panel:rgba(4,14,8,0.88);
+  --stroke:rgba(0,200,100,0.18);
+  --grn:#00c864;
+  --grn2:rgba(0,200,100,0.5);
+  --red:#ef4444;
+  --amber:#eab308;
+  --blue:#60a5fa;
+  --ink:#e8e4dc;
+  --muted:rgba(232,228,220,0.62);
+  --accent:#C94A12;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Share Tech Mono',monospace;
+}
+
+#game-wrap{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(0,200,100,0.06), transparent 36%),
+    radial-gradient(circle at 80% 18%, rgba(96,165,250,0.06), transparent 24%),
+    linear-gradient(180deg, #04150d 0%, #010603 100%);
+}
+
+#game{
+  position:absolute;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+}
+
+#topbar{
+  position:fixed;
+  top:0;left:0;right:0;
+  z-index:20;
+  height:56px;
+  padding:0 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:linear-gradient(180deg, rgba(0,8,4,0.95), rgba(0,8,4,0.82));
+  border-bottom:1px solid rgba(0,200,100,0.18);
+  backdrop-filter:blur(10px);
+}
+.brand{
+  font-family:'Playfair Display',serif;
+  font-style:italic;
+  font-weight:900;
+  letter-spacing:-0.03em;
+  font-size:20px;
+}
+.brand span{color:var(--accent);}
+.top-right{
+  display:flex;
+  gap:14px;
+  align-items:center;
+}
+.live-pill{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--red);
+  font-size:10px;
+  letter-spacing:0.14em;
+}
+.live-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--red);
+  animation:blink 1.15s infinite ease;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.22}}
+
+#hud{
+  position:fixed;
+  top:68px;
+  left:12px;
+  z-index:20;
+  width:min(390px, calc(100vw - 24px));
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.hud-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+}
+.card{
+  background:var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:10px;
+  padding:10px 10px 11px;
+  box-shadow:0 10px 40px rgba(0,0,0,0.24);
+  backdrop-filter:blur(8px);
+}
+.k{
+  font-size:9px;
+  letter-spacing:0.12em;
+  color:rgba(0,200,100,0.46);
+  margin-bottom:5px;
+}
+.v{
+  font-family:'Playfair Display',serif;
+  font-weight:900;
+  font-size:24px;
+  line-height:1;
+}
+.v.green{color:var(--grn);}
+.v.red{color:var(--red);}
+.v.amber{color:var(--amber);}
+.v.blue{color:var(--blue);}
+.sub{
+  margin-top:4px;
+  color:rgba(232,228,220,0.4);
+  font-size:10px;
+}
+
+.panel{
+  background:var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:10px;
+  padding:12px;
+  backdrop-filter:blur(8px);
+  box-shadow:0 10px 40px rgba(0,0,0,0.24);
+}
+.panel-title{
+  font-size:10px;
+  letter-spacing:0.15em;
+  color:var(--accent);
+  margin-bottom:8px;
+}
+.big{
+  font-family:'Playfair Display',serif;
+  font-size:25px;
+  line-height:1.04;
+  font-weight:900;
+  margin-bottom:8px;
+}
+.copy{
+  font-family:'Barlow',sans-serif;
+  font-size:13px;
+  line-height:1.58;
+  color:rgba(232,228,220,0.68);
+}
+
+#ability-panel{
+  position:fixed;
+  right:12px;
+  top:68px;
+  z-index:20;
+  width:min(290px, calc(100vw - 24px));
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.ability{
+  background:var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:10px;
+  padding:10px 12px;
+  backdrop-filter:blur(8px);
+  box-shadow:0 10px 40px rgba(0,0,0,0.24);
+}
+.ability-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.ability-name{
+  font-size:12px;
+  color:var(--ink);
+  letter-spacing:0.08em;
+}
+.ability-key{
+  color:var(--accent);
+  font-size:10px;
+}
+.ability-desc{
+  margin-top:5px;
+  font-family:'Barlow',sans-serif;
+  font-size:12px;
+  line-height:1.45;
+  color:rgba(232,228,220,0.58);
+}
+.cooldown{
+  margin-top:8px;
+  height:5px;
+  background:rgba(255,255,255,0.05);
+  border-radius:999px;
+  overflow:hidden;
+}
+.cooldown-fill{
+  height:100%;
+  width:100%;
+  background:linear-gradient(90deg, rgba(0,200,100,0.85), rgba(96,165,250,0.7));
+  transform-origin:left center;
+}
+
+#bottom-bar{
+  position:fixed;
+  left:12px;
+  right:12px;
+  bottom:12px;
+  z-index:20;
+  display:flex;
+  gap:8px;
+  align-items:stretch;
+}
+.bottom-card{
+  flex:1;
+  background:var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:10px;
+  padding:10px 12px;
+  backdrop-filter:blur(8px);
+  box-shadow:0 10px 40px rgba(0,0,0,0.24);
+}
+.progress{
+  height:7px;
+  background:rgba(255,255,255,0.06);
+  border-radius:999px;
+  overflow:hidden;
+  margin-top:8px;
+}
+.fill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg, rgba(0,200,100,0.95), rgba(234,179,8,0.92));
+}
+.health-red{background:linear-gradient(90deg, rgba(239,68,68,0.95), rgba(234,179,8,0.92));}
+.health-blue{background:linear-gradient(90deg, rgba(96,165,250,0.95), rgba(0,200,100,0.82));}
+
+#log{
+  position:fixed;
+  left:12px;
+  bottom:94px;
+  width:min(430px, calc(100vw - 24px));
+  max-height:168px;
+  overflow:hidden;
+  z-index:20;
+  background:var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:10px;
+  box-shadow:0 10px 40px rgba(0,0,0,0.24);
+  backdrop-filter:blur(8px);
+}
+.log-head{
+  padding:10px 12px 7px;
+  font-size:10px;
+  letter-spacing:0.14em;
+  color:rgba(0,200,100,0.48);
+}
+#log-items{
+  max-height:126px;
+  overflow:auto;
+}
+.log-item{
+  padding:8px 12px 9px;
+  border-top:1px solid rgba(0,200,100,0.08);
+}
+.log-time{
+  font-size:9px;
+  color:rgba(0,200,100,0.42);
+  letter-spacing:0.12em;
+  margin-bottom:4px;
+}
+.log-text{
+  font-family:'Barlow',sans-serif;
+  font-size:12px;
+  line-height:1.5;
+  color:rgba(232,228,220,0.68);
+}
+
+#center-msg{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  z-index:30;
+  min-width:min(740px, calc(100vw - 30px));
+  max-width:min(740px, calc(100vw - 30px));
+  background:linear-gradient(180deg, rgba(4,12,8,0.96), rgba(2,8,5,0.95));
+  border:1px solid rgba(0,200,100,0.22);
+  border-radius:18px;
+  padding:26px 24px 22px;
+  box-shadow:0 40px 100px rgba(0,0,0,0.46);
+  backdrop-filter:blur(12px);
+}
+#center-msg.hidden{display:none;}
+.msg-kicker{
+  font-size:10px;
+  letter-spacing:0.16em;
+  color:var(--accent);
+  margin-bottom:10px;
+}
+.msg-title{
+  font-family:'Playfair Display',serif;
+  font-size:44px;
+  line-height:0.98;
+  font-weight:900;
+  margin-bottom:10px;
+}
+.msg-copy{
+  font-family:'Barlow',sans-serif;
+  font-size:15px;
+  line-height:1.72;
+  color:rgba(232,228,220,0.74);
+  max-width:680px;
+}
+.msg-actions{
+  display:flex;
+  gap:10px;
+  margin-top:18px;
+  flex-wrap:wrap;
+}
+.btn{
+  appearance:none;
+  border:none;
+  cursor:pointer;
+  background:rgba(0,200,100,0.12);
+  color:#f1fff7;
+  border:1px solid rgba(0,200,100,0.28);
+  border-radius:999px;
+  padding:12px 18px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:12px;
+  letter-spacing:0.08em;
+}
+.btn.secondary{
+  background:rgba(255,255,255,0.04);
+  border-color:rgba(255,255,255,0.12);
+  color:rgba(232,228,220,0.85);
+}
+
+#flash{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:25;
+  opacity:0;
+  background:radial-gradient(circle at center, rgba(255,255,255,0.16), rgba(255,255,255,0.02) 30%, transparent 58%);
+}
+#flash.show{
+  animation:flash .3s ease;
+}
+@keyframes flash{
+  0%{opacity:0}
+  30%{opacity:1}
+  100%{opacity:0}
+}
+
+#crosshair{
+  position:fixed;
+  left:0;top:0;
+  width:26px;height:26px;
+  margin-left:-13px;margin-top:-13px;
+  pointer-events:none;
+  z-index:22;
+  opacity:0;
+}
+#crosshair.show{opacity:1;}
+.cross{
+  position:absolute;inset:0;border-radius:50%;
+  border:1px solid rgba(255,255,255,0.34);
+}
+.cross:before,.cross:after{
+  content:"";
+  position:absolute;
+  background:rgba(255,255,255,0.45);
+}
+.cross:before{left:50%;top:2px;bottom:2px;width:1px;transform:translateX(-50%);}
+.cross:after{top:50%;left:2px;right:2px;height:1px;transform:translateY(-50%);}
+
+@media (max-width: 1024px){
+  #hud{width:min(360px, calc(100vw - 24px));}
+  #ability-panel{width:min(260px, calc(100vw - 24px));}
+  .hud-grid{grid-template-columns:repeat(2,1fr);}
+  .v{font-size:20px;}
+}
+
+@media (max-width: 820px){
+  #ability-panel{
+    top:auto;
+    right:12px;
+    bottom:94px;
+    width:min(320px, calc(100vw - 24px));
+  }
+  #log{
+    width:min(340px, calc(100vw - 24px));
+    max-height:132px;
+  }
+  #bottom-bar{
+    flex-direction:column;
+  }
+  #center-msg{
+    padding:22px 18px 18px;
+  }
+  .msg-title{font-size:34px;}
+  .msg-copy{font-size:14px;}
+}
+
+@media (max-width: 640px){
+  #topbar{height:52px;padding:0 12px;}
+  .brand{font-size:18px;}
+  #hud{top:60px;left:10px;width:calc(100vw - 20px);}
+  #ability-panel{
+    left:10px;right:10px;width:auto;
+    top:auto;bottom:138px;
+  }
+  #log{
+    left:10px;width:calc(100vw - 20px);bottom:212px;
+  }
+  #bottom-bar{left:10px;right:10px;bottom:10px;}
+  .ability-desc,.copy,.log-text{font-size:11px;}
+  .msg-title{font-size:28px;}
+  .msg-copy{font-size:13px;}
+}
+</style>
+</head>
+<body>
+<div id="game-wrap">
+  <canvas id="game"></canvas>
+</div>
+
+<div id="topbar">
+  <div class="brand">The Signal<span>.</span></div>
+  <div class="top-right">
+    <div class="live-pill"><div class="live-dot"></div>LIVE THEATER</div>
+    <div style="font-size:10px;letter-spacing:.14em;color:rgba(0,200,100,.52)">ERA LABS · DEFEND THE STRAIT</div>
+  </div>
+</div>
+
+<div id="hud">
+  <div class="hud-grid">
+    <div class="card">
+      <div class="k">SCORE</div>
+      <div class="v green" id="scoreVal">0</div>
+      <div class="sub">Interceptions + saves</div>
+    </div>
+    <div class="card">
+      <div class="k">WAVE</div>
+      <div class="v amber" id="waveVal">1 / 6</div>
+      <div class="sub">Threat pressure</div>
+    </div>
+    <div class="card">
+      <div class="k">COMBO</div>
+      <div class="v blue" id="comboVal">x1</div>
+      <div class="sub">No misses / fast kills</div>
+    </div>
+    <div class="card">
+      <div class="k">KILLS</div>
+      <div class="v red" id="killsVal">0</div>
+      <div class="sub">Missiles + drones + boats</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">MISSION</div>
+    <div class="big" id="missionTitle">KEEP THE CORRIDOR OPEN</div>
+    <div class="copy" id="missionCopy">
+      Protect the carrier, escort the tankers through the Strait of Hormuz, and survive all six waves. Missiles, drones, and swarm boats will try to break the convoy. If the carrier is destroyed or every tanker is lost, the mission fails.
+    </div>
+  </div>
+</div>
+
+<div id="ability-panel">
+  <div class="ability">
+    <div class="ability-row">
+      <div class="ability-name">EMP BURST</div>
+      <div class="ability-key">[ 1 ]</div>
+    </div>
+    <div class="ability-desc">Stuns all drones and missiles in a wide radius around your target point for a short window.</div>
+    <div class="cooldown"><div class="cooldown-fill" id="cd1"></div></div>
+  </div>
+  <div class="ability">
+    <div class="ability-row">
+      <div class="ability-name">CIWS OVERDRIVE</div>
+      <div class="ability-key">[ 2 ]</div>
+    </div>
+    <div class="ability-desc">Carrier auto-cannon shreds nearby airborne threats for several seconds.</div>
+    <div class="cooldown"><div class="cooldown-fill" id="cd2"></div></div>
+  </div>
+  <div class="ability">
+    <div class="ability-row">
+      <div class="ability-name">AIRSTRIKE</div>
+      <div class="ability-key">[ 3 ]</div>
+    </div>
+    <div class="ability-desc">Deletes boats and damages clustered enemies at your target point.</div>
+    <div class="cooldown"><div class="cooldown-fill" id="cd3"></div></div>
+  </div>
+</div>
+
+<div id="log">
+  <div class="log-head">COMMAND LOG</div>
+  <div id="log-items"></div>
+</div>
+
+<div id="bottom-bar">
+  <div class="bottom-card">
+    <div class="k">CARRIER HEALTH</div>
+    <div class="progress"><div class="fill health-blue" id="carrierBar"></div></div>
+  </div>
+  <div class="bottom-card">
+    <div class="k">CONVOY INTEGRITY</div>
+    <div class="progress"><div class="fill" id="convoyBar"></div></div>
+  </div>
+  <div class="bottom-card">
+    <div class="k">WAVE PROGRESS</div>
+    <div class="progress"><div class="fill health-red" id="waveBar"></div></div>
+  </div>
+</div>
+
+<div id="center-msg">
+  <div class="msg-kicker">COMMAND BRIEF</div>
+  <div class="msg-title">DEFEND THE STRAIT</div>
+  <div class="msg-copy">
+    <strong>How to play:</strong><br>
+    Click or tap anywhere to fire an interceptor from the carrier.<br>
+    Destroy incoming missiles, drones, and swarm boats before they hit the carrier or your tankers.<br><br>
+    <strong>Abilities:</strong><br>
+    1 = EMP Burst &nbsp;·&nbsp; 2 = CIWS Overdrive &nbsp;·&nbsp; 3 = Airstrike<br><br>
+    <strong>You lose if:</strong><br>
+    the carrier is destroyed or all tankers are lost.<br><br>
+    <strong>You win if:</strong><br>
+    you survive all 6 waves with at least one tanker alive.
+  </div>
+  <div class="msg-actions">
+    <button class="btn" id="startBtn">START MISSION</button>
+    <button class="btn secondary" id="muteBtn">SOUNDLESS MODE</button>
+  </div>
+</div>
+
+<div id="flash"></div>
+<div id="crosshair"><div class="cross"></div></div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+let W = 0;
+let H = 0;
+let DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+
+function resize() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = Math.floor(W * DPR);
+  canvas.height = Math.floor(H * DPR);
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+resize();
+window.addEventListener('resize', resize);
+
+const ui = {
+  scoreVal: document.getElementById('scoreVal'),
+  waveVal: document.getElementById('waveVal'),
+  comboVal: document.getElementById('comboVal'),
+  killsVal: document.getElementById('killsVal'),
+  carrierBar: document.getElementById('carrierBar'),
+  convoyBar: document.getElementById('convoyBar'),
+  waveBar: document.getElementById('waveBar'),
+  missionTitle: document.getElementById('missionTitle'),
+  missionCopy: document.getElementById('missionCopy'),
+  cd1: document.getElementById('cd1'),
+  cd2: document.getElementById('cd2'),
+  cd3: document.getElementById('cd3'),
+  centerMsg: document.getElementById('center-msg'),
+  startBtn: document.getElementById('startBtn'),
+  muteBtn: document.getElementById('muteBtn'),
+  logItems: document.getElementById('log-items'),
+  flash: document.getElementById('flash'),
+  crosshair: document.getElementById('crosshair')
+};
+
+function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+function lerp(a,b,t){ return a + (b-a)*t; }
+function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+function rand(min, max){ return Math.random() * (max - min) + min; }
+function randi(min, max){ return Math.floor(rand(min, max + 1)); }
+
+const game = {
+  running: false,
+  paused: false,
+  muted: true,
+  time: 0,
+  score: 0,
+  kills: 0,
+  combo: 1,
+  comboTimer: 0,
+  wave: 1,
+  maxWaves: 6,
+  waveDuration: 34,
+  waveTime: 0,
+  ended: false,
+  result: '',
+  carrier: null,
+  tankers: [],
+  missiles: [],
+  drones: [],
+  boats: [],
+  interceptors: [],
+  explosions: [],
+  particles: [],
+  ripples: [],
+  effects: {
+    ciws: 0
+  },
+  abilities: {
+    emp: { cd: 18, timer: 0 },
+    ciws: { cd: 24, timer: 0 },
+    airstrike: { cd: 28, timer: 0 }
+  },
+  spawn: {
+    missile: 0,
+    drone: 0,
+    boat: 0
+  }
+};
+
+function addLog(text){
+  const item = document.createElement('div');
+  item.className = 'log-item';
+  item.innerHTML = `
+    <div class="log-time">T+${Math.floor(game.time).toString().padStart(2, '0')}s</div>
+    <div class="log-text">${text}</div>
+  `;
+  ui.logItems.prepend(item);
+  while(ui.logItems.children.length > 8){
+    ui.logItems.removeChild(ui.logItems.lastChild);
+  }
+}
+
+function flash(){
+  ui.flash.classList.remove('show');
+  void ui.flash.offsetWidth;
+  ui.flash.classList.add('show');
+}
+
+function setCenterMessage(kicker, title, copy, buttons){
+  ui.centerMsg.classList.remove('hidden');
+  ui.centerMsg.innerHTML = `
+    <div class="msg-kicker">${kicker}</div>
+    <div class="msg-title">${title}</div>
+    <div class="msg-copy">${copy}</div>
+    <div class="msg-actions">${buttons}</div>
+  `;
+}
+
+function hideCenterMessage(){
+  ui.centerMsg.classList.add('hidden');
+}
+
+function updateUI(){
+  ui.scoreVal.textContent = Math.floor(game.score).toLocaleString();
+  ui.waveVal.textContent = `${game.wave} / ${game.maxWaves}`;
+  ui.comboVal.textContent = `x${game.combo.toFixed(1).replace('.0','')}`;
+  ui.killsVal.textContent = game.kills;
+  ui.carrierBar.style.width = `${game.carrier ? clamp(game.carrier.hp / game.carrier.maxHp * 100, 0, 100) : 0}%`;
+
+  const convoyHp = game.tankers.reduce((sum,t)=>sum + Math.max(0, t.hp), 0);
+  const convoyMax = game.tankers.reduce((sum,t)=>sum + t.maxHp, 0) || 1;
+  ui.convoyBar.style.width = `${clamp(convoyHp / convoyMax * 100, 0, 100)}%`;
+
+  const waveProgress = clamp(game.waveTime / game.waveDuration * 100, 0, 100);
+  ui.waveBar.style.width = `${waveProgress}%`;
+
+  ui.cd1.style.transform = `scaleX(${1 - clamp(game.abilities.emp.timer / game.abilities.emp.cd, 0, 1)})`;
+  ui.cd2.style.transform = `scaleX(${1 - clamp(game.abilities.ciws.timer / game.abilities.ciws.cd, 0, 1)})`;
+  ui.cd3.style.transform = `scaleX(${1 - clamp(game.abilities.airstrike.timer / game.abilities.airstrike.cd, 0, 1)})`;
+}
+
+function resetGame(){
+  game.running = false;
+  game.paused = false;
+  game.time = 0;
+  game.score = 0;
+  game.kills = 0;
+  game.combo = 1;
+  game.comboTimer = 0;
+  game.wave = 1;
+  game.waveTime = 0;
+  game.ended = false;
+  game.result = '';
+
+  game.carrier = {
+    x: W * 0.5,
+    y: H * 0.82,
+    hp: 220,
+    maxHp: 220,
+    turretAngle: -Math.PI / 2,
+    hitFlash: 0
+  };
+
+  game.tankers = [
+    { x: W * 0.27, y: H * 0.68, w: 58, h: 20, hp: 100, maxHp: 100, speed: 14, alive: true, hitFlash: 0 },
+    { x: W * 0.5,  y: H * 0.62, w: 62, h: 22, hp: 100, maxHp: 100, speed: 16, alive: true, hitFlash: 0 },
+    { x: W * 0.73, y: H * 0.70, w: 58, h: 20, hp: 100, maxHp: 100, speed: 13, alive: true, hitFlash: 0 }
+  ];
+
+  game.missiles = [];
+  game.drones = [];
+  game.boats = [];
+  game.interceptors = [];
+  game.explosions = [];
+  game.particles = [];
+  game.ripples = [];
+  game.effects.ciws = 0;
+  game.abilities.emp.timer = 0;
+  game.abilities.ciws.timer = 0;
+  game.abilities.airstrike.timer = 0;
+
+  scheduleSpawns();
+  ui.logItems.innerHTML = '';
+  addLog('Command online. Protect the carrier and keep at least one tanker alive.');
+  updateMissionText();
+  updateUI();
+}
+
+function updateMissionText(){
+  if(game.wave < game.maxWaves){
+    ui.missionTitle.textContent = `SURVIVE WAVE ${game.wave}`;
+    ui.missionCopy.textContent = 'Intercept inbound threats before they punch through the convoy. Missiles hit hard, drones slip through fast, and swarm boats punish neglect. Keep the carrier alive and prevent total convoy loss.';
+  } else {
+    ui.missionTitle.textContent = 'FINAL DEFENSE';
+    ui.missionCopy.textContent = 'This is the heaviest push. Hold the line through the last surge and get the convoy out. One surviving tanker is enough for victory. Total convoy loss or carrier destruction ends the mission.';
+  }
+}
+
+function startGame(){
+  resetGame();
+  hideCenterMessage();
+  game.running = true;
+}
+
+function endGame(result){
+  game.running = false;
+  game.ended = true;
+  game.result = result;
+
+  let title = 'MISSION FAILED';
+  let kicker = 'THEATER LOST';
+  let copy = `The defense broke. Final score: <strong>${Math.floor(game.score).toLocaleString()}</strong>. Press R to restart.`;
+
+  if(result === 'victory'){
+    title = 'STRAIT SECURED';
+    kicker = 'MISSION SUCCESS';
+    copy = `You held the corridor through all ${game.maxWaves} waves and got at least one tanker out alive. Final score: <strong>${Math.floor(game.score).toLocaleString()}</strong>. Press R to run it again.`;
+  }
+  if(result === 'carrier'){
+    copy = `The carrier was destroyed. Without fleet command, the defense collapsed. Final score: <strong>${Math.floor(game.score).toLocaleString()}</strong>. Press R to restart.`;
+  }
+  if(result === 'convoy'){
+    copy = `All tankers were lost. The corridor failed even though the battle continued. Final score: <strong>${Math.floor(game.score).toLocaleString()}</strong>. Press R to restart.`;
+  }
+
+  setCenterMessage(
+    kicker,
+    title,
+    copy,
+    `<button class="btn" id="restartBtn">RESTART MISSION</button>`
+  );
+
+  const restartBtn = document.getElementById('restartBtn');
+  if(restartBtn){
+    restartBtn.addEventListener('click', startGame);
+  }
+}
+
+function scheduleSpawns(){
+  const intensity = 1 + (game.wave - 1) * 0.18;
+  game.spawn.missile = rand(0.8, 1.4) / intensity;
+  game.spawn.drone   = rand(1.6, 2.7) / intensity;
+  game.spawn.boat    = rand(4.0, 6.2) / intensity;
+}
+
+function spawnMissile(){
+  const targetPool = [game.carrier, ...game.tankers.filter(t => t.alive)];
+  if(!targetPool.length) return;
+  const target = targetPool[randi(0, targetPool.length - 1)];
+  const fromTop = Math.random() < 0.75;
+  const x = rand(30, W - 30);
+  const y = fromTop ? -20 : rand(H * 0.12, H * 0.3);
+  const speed = rand(86, 112) + game.wave * 8;
+  game.missiles.push({
+    x, y,
+    vx: (target.x - x) / dist({x,y}, target) * speed,
+    vy: (target.y - y) / dist({x,y}, target) * speed,
+    r: 4,
+    dmg: 28 + game.wave * 2,
+    alive: true,
+    targetType: target === game.carrier ? 'carrier' : 'tanker'
+  });
+}
+
+function spawnDrone(){
+  const side = Math.random() < 0.5 ? -1 : 1;
+  const y = rand(H * 0.18, H * 0.5);
+  const speed = rand(44, 68) + game.wave * 3;
+  const targetPool = [game.carrier, ...game.tankers.filter(t => t.alive)];
+  if(!targetPool.length) return;
+  const target = targetPool[randi(0, targetPool.length - 1)];
+  game.drones.push({
+    x: side < 0 ? -30 : W + 30,
+    y,
+    vx: side < 0 ? speed : -speed,
+    vy: rand(-10, 10),
+    r: 10,
+    hp: 22 + game.wave * 2,
+    maxHp: 22 + game.wave * 2,
+    dmg: 16 + game.wave * 1.5,
+    wobble: rand(0, Math.PI * 2),
+    emp: 0,
+    target
+  });
+}
+
+function spawnBoat(){
+  const side = Math.random() < 0.5 ? 0 : 1;
+  const x = side === 0 ? rand(30, W * 0.22) : rand(W * 0.78, W - 30);
+  const y = H + 30;
+  const targetPool = [game.carrier, ...game.tankers.filter(t => t.alive)];
+  if(!targetPool.length) return;
+  const target = targetPool[randi(0, targetPool.length - 1)];
+  const speed = rand(24, 36) + game.wave * 2.8;
+  game.boats.push({
+    x, y,
+    vx: 0,
+    vy: 0,
+    r: 14,
+    hp: 34 + game.wave * 6,
+    maxHp: 34 + game.wave * 6,
+    dmg: 22 + game.wave * 2.2,
+    speed,
+    target,
+    wake: 0,
+    alive: true
+  });
+}
+
+function addExplosion(x, y, radius, color = '255,220,140'){
+  game.explosions.push({
+    x, y,
+    r: 0,
+    maxR: radius,
+    life: 0.42,
+    maxLife: 0.42,
+    color
+  });
+  for(let i=0;i<18;i++){
+    const a = rand(0, Math.PI * 2);
+    const sp = rand(40, 160);
+    game.particles.push({
+      x, y,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp,
+      life: rand(0.3, 0.7),
+      maxLife: 0.7,
+      size: rand(1.5, 4.5),
+      color
+    });
+  }
+}
+
+function addRipple(x, y, color = '0,200,100'){
+  game.ripples.push({
+    x, y,
+    r: 2,
+    maxR: 86,
+    life: 0.45,
+    maxLife: 0.45,
+    color
+  });
+}
+
+function fireInterceptor(x, y){
+  if(!game.running || game.paused) return;
+  const c = game.carrier;
+  const origin = { x: c.x, y: c.y - 18 };
+  const d = Math.hypot(x - origin.x, y - origin.y) || 1;
+  const speed = 420;
+  game.interceptors.push({
+    x: origin.x,
+    y: origin.y,
+    tx: x,
+    ty: y,
+    vx: (x - origin.x) / d * speed,
+    vy: (y - origin.y) / d * speed,
+    life: 1.45,
+    maxLife: 1.45,
+    exploded: false,
+    radius: 56
+  });
+  c.turretAngle = Math.atan2(y - c.y, x - c.x);
+  addRipple(x, y, '255,255,255');
+}
+
+function useEMP(x, y){
+  if(game.abilities.emp.timer > 0 || !game.running || game.paused) return false;
+  game.abilities.emp.timer = game.abilities.emp.cd;
+  addExplosion(x, y, 120, '96,165,250');
+  addRipple(x, y, '96,165,250');
+  for(const m of game.missiles){
+    if(Math.hypot(m.x - x, m.y - y) < 120){
+      m.vx *= 0.2;
+      m.vy *= 0.2;
+      m.emp = 1.8;
+    }
+  }
+  for(const d of game.drones){
+    if(Math.hypot(d.x - x, d.y - y) < 120){
+      d.emp = 2.4;
+    }
+  }
+  addLog('EMP burst detonated over the corridor.');
+  flash();
+  return true;
+}
+
+function useCIWS(){
+  if(game.abilities.ciws.timer > 0 || !game.running || game.paused) return false;
+  game.abilities.ciws.timer = game.abilities.ciws.cd;
+  game.effects.ciws = 6.5;
+  addLog('CIWS Overdrive engaged on the carrier.');
+  flash();
+  return true;
+}
+
+function useAirstrike(x, y){
+  if(game.abilities.airstrike.timer > 0 || !game.running || game.paused) return false;
+  game.abilities.airstrike.timer = game.abilities.airstrike.cd;
+  addExplosion(x, y, 150, '239,68,68');
+  addRipple(x, y, '239,68,68');
+  for(const b of game.boats){
+    if(Math.hypot(b.x - x, b.y - y) < 130){
+      b.hp -= 999;
+    }
+  }
+  for(const d of game.drones){
+    if(Math.hypot(d.x - x, d.y - y) < 95){
+      d.hp -= 18;
+    }
+  }
+  for(const m of game.missiles){
+    if(Math.hypot(m.x - x, m.y - y) < 88){
+      m.alive = false;
+      rewardKill(110, true);
+    }
+  }
+  addLog('Airstrike package delivered on marked coordinates.');
+  flash();
+  return true;
+}
+
+function rewardKill(base, fast = false){
+  game.kills += 1;
+  game.comboTimer = 2.2;
+  game.combo = clamp(game.combo + (fast ? 0.25 : 0.16), 1, 6);
+  game.score += Math.round(base * game.combo);
+}
+
+function punishHit(){
+  game.combo = 1;
+  game.comboTimer = 0;
+}
+
+function damageCarrier(amount){
+  game.carrier.hp -= amount;
+  game.carrier.hitFlash = 0.18;
+  addExplosion(game.carrier.x, game.carrier.y - 10, 46, '239,68,68');
+  addLog(`Carrier hit. Hull integrity down ${Math.max(0, Math.round(game.carrier.hp))}.`);
+  punishHit();
+  if(game.carrier.hp <= 0){
+    game.carrier.hp = 0;
+    endGame('carrier');
+  }
+}
+
+function damageTanker(tanker, amount){
+  tanker.hp -= amount;
+  tanker.hitFlash = 0.22;
+  addExplosion(tanker.x, tanker.y, 34, '239,68,68');
+  punishHit();
+  if(tanker.hp <= 0 && tanker.alive){
+    tanker.hp = 0;
+    tanker.alive = false;
+    addLog('Tanker lost. Convoy integrity dropping.');
+    game.score = Math.max(0, game.score - 600);
+    if(game.tankers.filter(t => t.alive).length === 0){
+      endGame('convoy');
+    }
+  }
+}
+
+function nearestTargetForCIWS(){
+  const airborne = [];
+  for(const m of game.missiles) if(m.alive) airborne.push({ type: 'missile', ref: m, d: dist(m, game.carrier) });
+  for(const d of game.drones) if(d.hp > 0) airborne.push({ type: 'drone', ref: d, d: dist(d, game.carrier) });
+  airborne.sort((a,b)=>a.d-b.d);
+  return airborne[0] || null;
+}
+
+function update(dt){
+  if(!game.running || game.paused) return;
+
+  game.time += dt;
+  game.waveTime += dt;
+
+  if(game.comboTimer > 0){
+    game.comboTimer -= dt;
+    if(game.comboTimer <= 0) game.combo = 1;
+  }
+
+  game.carrier.hitFlash = Math.max(0, game.carrier.hitFlash - dt);
+  for(const t of game.tankers) t.hitFlash = Math.max(0, t.hitFlash - dt);
+
+  game.abilities.emp.timer = Math.max(0, game.abilities.emp.timer - dt);
+  game.abilities.ciws.timer = Math.max(0, game.abilities.ciws.timer - dt);
+  game.abilities.airstrike.timer = Math.max(0, game.abilities.airstrike.timer - dt);
+  game.effects.ciws = Math.max(0, game.effects.ciws - dt);
+
+  const waveIntensity = 1 + (game.wave - 1) * 0.23;
+
+  game.spawn.missile -= dt;
+  game.spawn.drone -= dt;
+  game.spawn.boat -= dt;
+
+  if(game.spawn.missile <= 0){
+    spawnMissile();
+    game.spawn.missile = rand(0.65, 1.25) / waveIntensity;
+  }
+  if(game.spawn.drone <= 0){
+    spawnDrone();
+    game.spawn.drone = rand(1.25, 2.2) / waveIntensity;
+  }
+  if(game.spawn.boat <= 0){
+    spawnBoat();
+    game.spawn.boat = rand(3.8, 5.6) / waveIntensity;
+  }
+
+  if(game.waveTime >= game.waveDuration){
+    if(game.wave >= game.maxWaves){
+      if(game.tankers.filter(t=>t.alive).length > 0 && game.carrier.hp > 0){
+        game.score += 2500 + game.tankers.filter(t=>t.alive).length * 1000 + Math.round(game.carrier.hp * 4);
+        endGame('victory');
+      }
+      return;
+    } else {
+      game.wave += 1;
+      game.waveTime = 0;
+      updateMissionText();
+      scheduleSpawns();
+      addLog(`Wave ${game.wave} entering the theater. Threat density increasing.`);
+      game.score += 500;
+    }
+  }
+
+  for(const t of game.tankers){
+    if(!t.alive) continue;
+    t.x += t.speed * dt * 0.25;
+    if(t.x > W + 80) t.x = -80;
+  }
+
+  for(const i of game.interceptors){
+    i.life -= dt;
+    if(i.life <= 0 && !i.exploded){
+      i.exploded = true;
+      i.blastLife = 0.16;
+      addExplosion(i.x, i.y, i.radius, '255,255,255');
+    }
+    if(!i.exploded){
+      i.x += i.vx * dt;
+      i.y += i.vy * dt;
+      if(Math.hypot(i.x - i.tx, i.y - i.ty) < 8){
+        i.exploded = true;
+        i.blastLife = 0.16;
+        addExplosion(i.x, i.y, i.radius, '255,255,255');
+      }
+    } else {
+      i.blastLife -= dt;
+    }
+  }
+  game.interceptors = game.interceptors.filter(i => !i.exploded || i.blastLife > 0);
+
+  for(const m of game.missiles){
+    if(!m.alive) continue;
+    if(m.emp > 0){
+      m.emp -= dt;
+      m.x += m.vx * dt * 0.22;
+      m.y += m.vy * dt * 0.22;
+    } else {
+      m.x += m.vx * dt;
+      m.y += m.vy * dt;
+    }
+
+    for(const i of game.interceptors){
+      if(i.exploded && i.blastLife > 0 && Math.hypot(m.x - i.x, m.y - i.y) < i.radius){
+        m.alive = false;
+        rewardKill(100, true);
+        addExplosion(m.x, m.y, 28, '255,180,120');
+      }
+    }
+
+    if(game.effects.ciws > 0){
+      const d = Math.hypot(m.x - game.carrier.x, m.y - game.carrier.y);
+      if(d < 210){
+        m.alive = false;
+        rewardKill(80, true);
+        addExplosion(m.x, m.y, 20, '96,165,250');
+      }
+    }
+
+    if(!m.alive) continue;
+
+    if(Math.hypot(m.x - game.carrier.x, m.y - game.carrier.y) < 28){
+      m.alive = false;
+      damageCarrier(m.dmg);
+    }
+
+    for(const t of game.tankers){
+      if(!t.alive) continue;
+      if(Math.hypot(m.x - t.x, m.y - t.y) < 24){
+        m.alive = false;
+        damageTanker(t, m.dmg);
+      }
+    }
+  }
+  game.missiles = game.missiles.filter(m => m.alive && m.x > -80 && m.x < W + 80 && m.y > -80 && m.y < H + 80);
+
+  for(const d of game.drones){
+    d.wobble += dt * 3.2;
+    const target = d.target && d.target.alive !== false ? d.target : game.carrier;
+    const angle = Math.atan2(target.y - d.y, target.x - d.x);
+    const speed = d.emp > 0 ? 12 : 38 + game.wave * 4;
+    if(d.emp > 0) d.emp -= dt;
+    d.vx = Math.cos(angle) * speed + Math.cos(d.wobble) * 12;
+    d.vy = Math.sin(angle) * speed + Math.sin(d.wobble * 1.6) * 9;
+    d.x += d.vx * dt;
+    d.y += d.vy * dt;
+
+    for(const i of game.interceptors){
+      if(i.exploded && i.blastLife > 0 && Math.hypot(d.x - i.x, d.y - i.y) < i.radius){
+        d.hp -= 40;
+      }
+    }
+
+    if(game.effects.ciws > 0 && Math.hypot(d.x - game.carrier.x, d.y - game.carrier.y) < 220){
+      d.hp -= 46 * dt;
+    }
+
+    if(d.hp <= 0){
+      rewardKill(90, true);
+      addExplosion(d.x, d.y, 24, '255,220,140');
+      d.dead = true;
+      continue;
+    }
+
+    if(Math.hypot(d.x - game.carrier.x, d.y - game.carrier.y) < 24){
+      d.dead = true;
+      damageCarrier(d.dmg);
+    }
+
+    for(const t of game.tankers){
+      if(!t.alive) continue;
+      if(Math.hypot(d.x - t.x, d.y - t.y) < 20){
+        d.dead = true;
+        damageTanker(t, d.dmg);
+      }
+    }
+  }
+  game.drones = game.drones.filter(d => !d.dead && d.x > -120 && d.x < W + 120 && d.y > -120 && d.y < H + 120);
+
+  for(const b of game.boats){
+    const target = b.target && b.target.alive !== false ? b.target : game.carrier;
+    const a = Math.atan2(target.y - b.y, target.x - b.x);
+    b.vx = Math.cos(a) * b.speed;
+    b.vy = Math.sin(a) * b.speed;
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    b.wake += dt * 12;
+
+    for(const i of game.interceptors){
+      if(i.exploded && i.blastLife > 0 && Math.hypot(b.x - i.x, b.y - i.y) < i.radius){
+        b.hp -= 40;
+      }
+    }
+
+    if(b.hp <= 0){
+      rewardKill(140, true);
+      addExplosion(b.x, b.y, 36, '255,180,120');
+      b.dead = true;
+      continue;
+    }
+
+    if(Math.hypot(b.x - game.carrier.x, b.y - game.carrier.y) < 38){
+      b.dead = true;
+      damageCarrier(b.dmg);
+    }
+
+    for(const t of game.tankers){
+      if(!t.alive) continue;
+      if(Math.hypot(b.x - t.x, b.y - t.y) < 34){
+        b.dead = true;
+        damageTanker(t, b.dmg);
+      }
+    }
+  }
+  game.boats = game.boats.filter(b => !b.dead && b.y < H + 100);
+
+  if(game.effects.ciws > 0){
+    const target = nearestTargetForCIWS();
+    if(target){
+      game.carrier.turretAngle = Math.atan2(target.ref.y - game.carrier.y, target.ref.x - game.carrier.x);
+      if(target.type === 'missile') target.ref.alive = false;
+      if(target.type === 'drone') target.ref.hp -= 100;
+      rewardKill(70, true);
+      addExplosion(target.ref.x, target.ref.y, 18, '96,165,250');
+    }
+  }
+
+  for(const ex of game.explosions){
+    ex.life -= dt;
+    ex.r = lerp(ex.maxR, 0, 1 - ex.life / ex.maxLife);
+  }
+  game.explosions = game.explosions.filter(ex => ex.life > 0);
+
+  for(const p of game.particles){
+    p.life -= dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vx *= 0.985;
+    p.vy *= 0.985;
+  }
+  game.particles = game.particles.filter(p => p.life > 0);
+
+  for(const r of game.ripples){
+    r.life -= dt;
+    r.r = lerp(10, r.maxR, 1 - r.life / r.maxLife);
+  }
+  game.ripples = game.ripples.filter(r => r.life > 0);
+
+  updateUI();
+}
+
+function drawBackground(){
+  const seaGrad = ctx.createLinearGradient(0, 56, 0, H);
+  seaGrad.addColorStop(0, 'rgba(0,18,10,1)');
+  seaGrad.addColorStop(1, 'rgba(0,6,4,1)');
+  ctx.fillStyle = seaGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = 'rgba(0,200,100,0.025)';
+  ctx.lineWidth = 1;
+  for(let x=0; x<W; x+=64){
+    ctx.beginPath();
+    ctx.moveTo(x, 56);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+  }
+  for(let y=90; y<H; y+=58){
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  for(let i=0;i<8;i++){
+    ctx.beginPath();
+    ctx.strokeStyle = `rgba(0,200,100,${0.015 + i * 0.003})`;
+    ctx.lineWidth = 1;
+    const yy = H * 0.14 + i * 42 + Math.sin(game.time * 0.35 + i) * 8;
+    ctx.moveTo(0, yy);
+    ctx.bezierCurveTo(W*0.25, yy-30, W*0.6, yy+25, W, yy-10);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = 'rgba(0,200,100,0.08)';
+  ctx.font = "italic 900 150px 'Playfair Display', serif";
+  ctx.textAlign = 'center';
+  ctx.save();
+  ctx.translate(W * 0.52, H * 0.52);
+  ctx.rotate(-0.25);
+  ctx.fillText('ERA LABS', 0, 0);
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(201,74,18,0.65)';
+  ctx.font = "bold 18px 'Share Tech Mono', monospace";
+  ctx.fillText('STRAIT OF HORMUZ DEFENSE CORRIDOR', W * 0.5, H * 0.12);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.setLineDash([6,6]);
+  ctx.beginPath();
+  ctx.moveTo(W * 0.2, H * 0.24);
+  ctx.lineTo(W * 0.8, H * 0.24);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawCarrier(){
+  const c = game.carrier;
+  ctx.save();
+  ctx.translate(c.x, c.y);
+
+  if(c.hitFlash > 0){
+    ctx.fillStyle = `rgba(239,68,68,${c.hitFlash * 1.8})`;
+    ctx.beginPath();
+    ctx.arc(0, 0, 72, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = 'rgba(96,165,250,0.1)';
+  ctx.beginPath();
+  ctx.arc(0, 0, 84, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#173042';
+  ctx.beginPath();
+  ctx.moveTo(-72, 10);
+  ctx.lineTo(-38, -14);
+  ctx.lineTo(42, -14);
+  ctx.lineTo(72, 10);
+  ctx.lineTo(0, 24);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(96,165,250,0.75)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = '#7cc1ff';
+  ctx.fillRect(-22, -7, 44, 10);
+
+  ctx.save();
+  ctx.rotate(c.turretAngle);
+  ctx.fillStyle = '#d9f0ff';
+  ctx.fillRect(0, -3, 42, 6);
+  ctx.restore();
+
+  if(game.effects.ciws > 0){
+    ctx.strokeStyle = `rgba(96,165,250,${0.28 + Math.sin(game.time * 18) * 0.18})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, 108 + Math.sin(game.time * 12) * 6, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawTanker(t){
+  if(!t.alive) return;
+  ctx.save();
+  ctx.translate(t.x, t.y);
+  if(t.hitFlash > 0){
+    ctx.fillStyle = `rgba(239,68,68,${t.hitFlash * 1.6})`;
+    ctx.beginPath();
+    ctx.arc(0, 0, 36, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#2c4b3a';
+  ctx.beginPath();
+  ctx.moveTo(-t.w * 0.5, 0);
+  ctx.lineTo(-t.w * 0.3, -t.h * 0.5);
+  ctx.lineTo(t.w * 0.42, -t.h * 0.5);
+  ctx.lineTo(t.w * 0.5, 0);
+  ctx.lineTo(t.w * 0.42, t.h * 0.5);
+  ctx.lineTo(-t.w * 0.3, t.h * 0.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,200,100,0.45)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.fillStyle = '#d4eede';
+  ctx.fillRect(-t.w * 0.08, -t.h * 0.18, t.w * 0.18, t.h * 0.36);
+
+  ctx.strokeStyle = 'rgba(0,200,100,0.2)';
+  ctx.beginPath();
+  ctx.moveTo(-t.w * 0.62, 0);
+  ctx.lineTo(-t.w * 1.2, 0);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawMissile(m){
+  ctx.save();
+  const a = Math.atan2(m.vy, m.vx);
+  ctx.translate(m.x, m.y);
+  ctx.rotate(a);
+  ctx.fillStyle = '#ffdfb6';
+  ctx.fillRect(-12, -2, 16, 4);
+  ctx.beginPath();
+  ctx.moveTo(6, 0);
+  ctx.lineTo(0, -5);
+  ctx.lineTo(0, 5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(239,68,68,0.35)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-24, 0);
+  ctx.lineTo(-6, 0);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawDrone(d){
+  ctx.save();
+  ctx.translate(d.x, d.y);
+  ctx.rotate(Math.atan2(d.vy, d.vx));
+  ctx.fillStyle = d.emp > 0 ? 'rgba(96,165,250,0.9)' : '#f0efe8';
+  ctx.beginPath();
+  ctx.moveTo(12, 0);
+  ctx.lineTo(2, -6);
+  ctx.lineTo(-10, -4);
+  ctx.lineTo(-10, 4);
+  ctx.lineTo(2, 6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = d.emp > 0 ? 'rgba(96,165,250,0.9)' : 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+  ctx.beginPath();
+  ctx.moveTo(-6, -8);
+  ctx.lineTo(-2, -8);
+  ctx.moveTo(-6, 8);
+  ctx.lineTo(-2, 8);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawBoat(b){
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  const a = Math.atan2(b.vy, b.vx) + Math.PI * 0.5;
+  ctx.rotate(a);
+
+  for(let i=0;i<2;i++){
+    ctx.strokeStyle = `rgba(255,255,255,${0.08 - i*0.02})`;
+    ctx.beginPath();
+    ctx.moveTo(-6 + i * 10, 20);
+    ctx.lineTo(-12 + Math.sin(b.wake + i) * 2, 42);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = '#6b1f1f';
+  ctx.beginPath();
+  ctx.moveTo(0, -18);
+  ctx.lineTo(10, 8);
+  ctx.lineTo(0, 16);
+  ctx.lineTo(-10, 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawInterceptor(i){
+  if(i.exploded) return;
+  ctx.save();
+  const a = Math.atan2(i.vy, i.vx);
+  ctx.translate(i.x, i.y);
+  ctx.rotate(a);
+  ctx.fillStyle = '#c4fff0';
+  ctx.fillRect(-8, -1.6, 12, 3.2);
+  ctx.beginPath();
+  ctx.moveTo(4, 0);
+  ctx.lineTo(-1, -4);
+  ctx.lineTo(-1, 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawExplosion(ex){
+  const alpha = ex.life / ex.maxLife;
+  ctx.beginPath();
+  ctx.arc(ex.x, ex.y, ex.r, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(${ex.color},${alpha * 0.25})`;
+  ctx.fill();
+  ctx.strokeStyle = `rgba(${ex.color},${alpha * 0.9})`;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function drawParticle(p){
+  const alpha = p.life / p.maxLife;
+  ctx.fillStyle = `rgba(${p.color},${alpha})`;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawRipple(r){
+  const alpha = r.life / r.maxLife;
+  ctx.strokeStyle = `rgba(${r.color},${alpha * 0.45})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawThreatLanes(){
+  ctx.strokeStyle = 'rgba(239,68,68,0.06)';
+  ctx.lineWidth = 1;
+  for(let i=0;i<6;i++){
+    const x = W * (0.12 + i * 0.14);
+    ctx.beginPath();
+    ctx.moveTo(x, 52);
+    ctx.lineTo(W * 0.5 + (x - W*0.5) * 0.22, H * 0.84);
+    ctx.stroke();
+  }
+}
+
+function draw(){
+  ctx.clearRect(0, 0, W, H);
+  drawBackground();
+  drawThreatLanes();
+
+  for(const r of game.ripples) drawRipple(r);
+  for(const t of game.tankers) drawTanker(t);
+  drawCarrier();
+  for(const b of game.boats) drawBoat(b);
+  for(const d of game.drones) drawDrone(d);
+  for(const m of game.missiles) drawMissile(m);
+  for(const i of game.interceptors) drawInterceptor(i);
+  for(const ex of game.explosions) drawExplosion(ex);
+  for(const p of game.particles) drawParticle(p);
+
+  if(game.paused && game.running){
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#e8e4dc';
+    ctx.textAlign = 'center';
+    ctx.font = "italic 900 52px 'Playfair Display', serif";
+    ctx.fillText('PAUSED', W/2, H/2);
+    ctx.font = "14px 'Share Tech Mono', monospace";
+    ctx.fillStyle = 'rgba(232,228,220,0.72)';
+    ctx.fillText('Press P to resume', W/2, H/2 + 34);
+  }
+}
+
+let last = performance.now();
+function loop(now){
+  const dt = Math.min(0.033, (now - last) / 1000);
+  last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+let currentAbility = 'fire';
+let mouse = { x: W/2, y: H/2 };
+
+function setCrosshair(x, y){
+  mouse.x = x;
+  mouse.y = y;
+  ui.crosshair.style.left = x + 'px';
+  ui.crosshair.style.top = y + 'px';
+  ui.crosshair.classList.add('show');
+}
+
+window.addEventListener('mousemove', (e)=>{
+  setCrosshair(e.clientX, e.clientY);
+});
+window.addEventListener('touchstart', (e)=>{
+  const t = e.touches[0];
+  if(!t) return;
+  setCrosshair(t.clientX, t.clientY);
+}, { passive:true });
+
+function handleActionAt(x, y){
+  if(!game.running || game.paused) return;
+
+  if(currentAbility === 'emp'){
+    if(useEMP(x, y)) currentAbility = 'fire';
+    return;
+  }
+  if(currentAbility === 'airstrike'){
+    if(useAirstrike(x, y)) currentAbility = 'fire';
+    return;
+  }
+  fireInterceptor(x, y);
+}
+
+window.addEventListener('mousedown', (e)=>{
+  handleActionAt(e.clientX, e.clientY);
+});
+window.addEventListener('touchend', (e)=>{
+  const t = e.changedTouches[0];
+  if(!t) return;
+  handleActionAt(t.clientX, t.clientY);
+}, { passive:true });
+
+window.addEventListener('keydown', (e)=>{
+  const k = e.key.toLowerCase();
+
+  if(k === '1'){
+    currentAbility = 'emp';
+    addLog('EMP target mode armed.');
+  } else if(k === '2'){
+    useCIWS();
+  } else if(k === '3'){
+    currentAbility = 'airstrike';
+    addLog('Airstrike target mode armed.');
+  } else if(k === 'p'){
+    if(game.running) game.paused = !game.paused;
+  } else if(k === 'r'){
+    startGame();
+  } else if(k === 'escape'){
+    currentAbility = 'fire';
+  } else if(k === ' '){
+    e.preventDefault();
+    currentAbility = 'fire';
+  }
+});
+
+ui.startBtn.addEventListener('click', startGame);
+ui.muteBtn.addEventListener('click', ()=>{
+  game.muted = !game.muted;
+  ui.muteBtn.textContent = game.muted ? 'SOUNDLESS MODE' : 'MUTED OFF';
+});
+
+resetGame();
+updateUI();
+draw();
+</script>
+</body>
+</html>

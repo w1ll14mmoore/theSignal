@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERA Labs — Globe Reel v3</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,900;1,900&family=Share+Tech+Mono&display=swap");
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#000;display:flex;flex-direction:column;align-items:center;padding:24px 16px 40px;font-family:'Share Tech Mono',monospace;}
+.warn{background:rgba(0,200,100,0.06);border:0.5px solid rgba(0,200,100,0.2);padding:8px 12px;margin-bottom:12px;font-size:10px;color:rgba(0,200,100,0.7);letter-spacing:0.08em;line-height:1.6;max-width:360px;width:100%;}
+.frame{position:relative;width:315px;height:560px;overflow:hidden;border-radius:4px;border:0.5px solid rgba(0,200,100,0.2);background:#000;}
+#gl{position:absolute;top:0;left:0;width:315px;height:560px;}
+#hud{position:absolute;top:0;left:0;width:315px;height:560px;pointer-events:none;}
+.controls{margin-top:10px;display:flex;gap:8px;width:315px;}
+.btn{flex:1;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:0.1em;padding:9px;border-radius:2px;cursor:pointer;border:0.5px solid #333;background:#111;color:#777;transition:all 0.2s;}
+.btn.primary{background:rgba(0,200,100,0.08);border-color:rgba(0,200,100,0.35);color:rgba(0,200,100,0.85);}
+.btn.rec{background:rgba(220,38,38,0.15);border-color:rgba(220,38,38,0.5);color:#f87171;animation:blink 1s ease infinite;}
+.btn.done{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);color:#4ade80;}
+.btn:disabled{opacity:0.35;cursor:not-allowed;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.5}}
+.bar{height:2px;background:#111;width:315px;margin-top:8px;border-radius:1px;overflow:hidden;}
+.fill{height:100%;width:0%;background:rgba(0,200,100,0.7);transition:width linear;}
+.status{font-size:9px;letter-spacing:0.08em;color:#444;display:flex;align-items:center;gap:6px;margin-top:6px;width:315px;}
+.sdot{width:6px;height:6px;border-radius:50%;background:#222;flex-shrink:0;}
+.sdot.live{background:#ef4444;animation:pd 1s ease infinite;}
+.sdot.done{background:#22c55e;}
+@keyframes pd{0%,100%{opacity:1}50%{opacity:0.2}}
+</style>
+</head>
+<body>
+<div class="warn">// OPEN IN CHROME AS file:// · INTERNET NEEDED FOR TEXTURE</div>
+<div class="frame">
+  <canvas id="gl" width="630" height="1120"></canvas>
+  <canvas id="hud" width="630" height="1120"></canvas>
+</div>
+<div class="controls">
+  <button class="btn primary" id="rb" onclick="startRecord()">⏺ RECORD</button>
+  <button class="btn" onclick="restart()">↺ PREVIEW</button>
+</div>
+<div class="bar"><div class="fill" id="fill"></div></div>
+<div class="status"><div class="sdot" id="sdot"></div><span id="stxt">Hit PREVIEW · then RECORD</span></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ═══════════════════════════════════════
+   ERA GLOBE REEL v3
+   Starts from working Gulf view
+   → pulls back → dives → layers activate
+═══════════════════════════════════════ */
+
+var W=630,H=1120,TOTAL=32000;
+var GL=document.getElementById('gl');
+var HC=document.getElementById('hud');
+var HX=HC.getContext('2d');
+var SR=200;
+
+/* Colors */
+var GRN='#00c864',GRN2='rgba(0,200,100,0.55)',ACC='#C94A12';
+var RED='#ef4444',AMB='#eab308',BLU='#60a5fa';
+var MONO="'Share Tech Mono',monospace",SERIF="'Playfair Display',Georgia,serif";
+
+/* Phase map — all in ms */
+var PH=[
+  0,     /* Ph0  0-4s:  HOLD on Gulf view — ERA title card */
+  4000,  /* Ph1  4-9s:  Pull back — show full globe spinning */
+  9000,  /* Ph2  9-14s: Oil routes ignite across globe */
+  14000, /* Ph3  14-19s: Dive back into Gulf — slam */
+  19000, /* Ph4  19-23s: Strike targets lock */
+  23000, /* Ph5  23-27s: Thermal spikes activate */
+  27000, /* Ph6  27-32s: Verdict + CTA */
+  32000
+];
+
+var T0=null,E=0,raf=null;
+var scene,camera,renderer,earthMesh;
+var rot={x:Math.PI*1.3,y:0.8685}; /* CONFIRMED: PI*1.7892, y=0.4685 */
+var tgt={x:Math.PI*1.3,y:0.8685};
+var dist=811,distT=811;            /* CONFIRMED dist=811 (full globe, Gulf centered) */
+
+var eo=function(t){return 1-Math.pow(1-Math.min(1,Math.max(0,t)),3);};
+var eio=function(t){return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;};
+var lerp=function(a,b,t){return a+(b-a)*Math.min(1,Math.max(0,t));};
+var cl=function(v,a,b){return Math.min(b,Math.max(a,v));};
+var rnd=function(a,b){return a+Math.random()*(b-a);};
+
+/* ── Camera fly animation ── */
+var camAnim={on:false,x0:0,y0:0,d0:0,x1:0,y1:0,d1:0,t0:0,dur:0};
+function flyTo(rx,ry,rd,dur){
+  camAnim={on:true,x0:tgt.x,y0:tgt.y,d0:distT,x1:rx,y1:ry,d1:rd,t0:E,dur:dur};
+}
+function tickCam(){
+  if(!camAnim.on)return;
+  var t=cl((E-camAnim.t0)/camAnim.dur,0,1),et=eio(t);
+  /* Shortest arc */
+  var dx=camAnim.x1-camAnim.x0;
+  while(dx>Math.PI)dx-=Math.PI*2;while(dx<-Math.PI)dx+=Math.PI*2;
+  tgt.x=camAnim.x0+dx*et;
+  tgt.y=lerp(camAnim.y0,camAnim.y1,et);
+  distT=lerp(camAnim.d0,camAnim.d1,et);
+  if(t>=1)camAnim.on=false;
+}
+
+/* ── Globe init ── */
+function initGlobe(){
+  camera=new THREE.PerspectiveCamera(38,W/H,1,10000);
+  scene=new THREE.Scene();
+
+  /* Earth */
+  var geo=new THREE.SphereGeometry(SR,52,40);
+  var mat=new THREE.MeshPhongMaterial({color:0x223322,emissive:0x001a08,specular:0x112211,shininess:8});
+  earthMesh=new THREE.Mesh(geo,mat);earthMesh.rotation.y=Math.PI;scene.add(earthMesh);
+
+  /* Load texture */
+  var ldr=new THREE.TextureLoader();
+  ldr.load('https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/textures/planets/earth_atmos_2048.jpg',
+    function(t){mat.map=t;mat.color.set(0x557766);mat.needsUpdate=true;},undefined,
+    function(){ldr.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg',
+      function(t){mat.map=t;mat.color.set(0x557766);mat.needsUpdate=true;});});
+
+  /* Grid */
+  var gm=new THREE.LineBasicMaterial({color:0x003310,transparent:true,opacity:0.35});
+  for(var la=-80;la<=80;la+=20){var p=[];for(var ln=0;ln<=360;ln+=5){var ph=(90-la)*Math.PI/180,th=ln*Math.PI/180;p.push(new THREE.Vector3((SR+0.8)*Math.sin(ph)*Math.cos(th),(SR+0.8)*Math.cos(ph),(SR+0.8)*Math.sin(ph)*Math.sin(th)));}scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(p),gm));}
+  for(var ln2=0;ln2<360;ln2+=20){var p2=[];for(var la2=-89;la2<=89;la2+=5){var ph2=(90-la2)*Math.PI/180,th2=(180-ln2)*Math.PI/180;p2.push(new THREE.Vector3((SR+0.8)*Math.sin(ph2)*Math.cos(th2),(SR+0.8)*Math.cos(ph2),(SR+0.8)*Math.sin(ph2)*Math.sin(th2)));}scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(p2),gm));}
+
+  /* Atmosphere */
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(SR,52,40),new THREE.ShaderMaterial({
+    vertexShader:'varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1);}',
+    fragmentShader:'varying vec3 vN;void main(){float i=pow(0.72-dot(vN,vec3(0,0,1)),10.);gl_FragColor=vec4(0.,0.85,0.4,1.)*i;}',
+    side:THREE.BackSide,blending:THREE.AdditiveBlending,transparent:true
+  })).scale.set(1.13,1.13,1.13)||scene.children[scene.children.length-1]);
+
+  /* Stars */
+  var sp=[];for(var i=0;i<600;i++){var r=rnd(2500,4500),phi=rnd(0,Math.PI*2),theta=rnd(0,Math.PI);sp.push(r*Math.sin(theta)*Math.cos(phi),r*Math.cos(theta),r*Math.sin(theta)*Math.sin(phi));}
+  var sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
+  scene.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:2.5,transparent:true,opacity:0.6})));
+
+  /* Lights */
+  scene.add(new THREE.AmbientLight(0x003310,0.9));
+  var dl=new THREE.DirectionalLight(0x00ff80,0.35);dl.position.set(5,3,5);scene.add(dl);
+
+  /* Renderer */
+  renderer=new THREE.WebGLRenderer({canvas:GL,antialias:true,alpha:true});
+  renderer.setPixelRatio(1); /* force 1:1 for reel canvas */
+  renderer.setSize(W,H);
+}
+
+/* ── Data layers ── */
+var ROUTES=[
+  {lat:30.63,lng:122.10,col:'#ff5050',vol:0.38},
+  {lat:22.54,lng:113.93,col:'#ff6060',vol:0.32},
+  {lat:39.91,lng:119.60,col:'#ff4040',vol:0.28},
+  {lat:18.96,lng:72.82, col:'#fbbf24',vol:0.18},
+  {lat:34.65,lng:135.19,col:'#60a5fa',vol:0.16},
+  {lat:1.26, lng:103.82,col:'#34d399',vol:0.14},
+  {lat:35.10,lng:129.07,col:'#93c5fd',vol:0.13},
+  {lat:51.90,lng:4.48,  col:'#a78bfa',vol:0.08},
+];
+var KHARG={lat:29.26,lng:50.33};
+
+var STRIKES=[
+  {lat:29.26,lng:50.33,lbl:'Kharg Island',col:RED},
+  {lat:26.65,lng:50.08,lbl:'Ras Tanura',col:RED},
+  {lat:25.93,lng:49.67,lbl:'Abqaiq',col:AMB},
+  {lat:25.9, lng:51.55,lbl:'Ras Laffan',col:RED},
+  {lat:25.12,lng:56.35,lbl:'Fujairah',col:RED},
+  {lat:27.18,lng:56.27,lbl:'Bandar Abbas',col:RED},
+];
+
+/* Slerp great circle */
+function slerp3(la1,ln1,la2,ln2,steps){
+  var R=Math.PI/180;
+  var p1=new THREE.Vector3(Math.cos(la1*R)*Math.cos(ln1*R),Math.sin(la1*R),Math.cos(la1*R)*Math.sin(ln1*R)).normalize();
+  var p2=new THREE.Vector3(Math.cos(la2*R)*Math.cos(ln2*R),Math.sin(la2*R),Math.cos(la2*R)*Math.sin(ln2*R)).normalize();
+  var pts=[];
+  for(var i=0;i<=steps;i++){
+    var t=i/steps,dot=Math.min(1,Math.max(-1,p1.dot(p2))),omega=Math.acos(dot),v;
+    if(omega<0.0001)v=p1.clone().lerp(p2,t).normalize();
+    else{var s=Math.sin(omega);v=p1.clone().multiplyScalar(Math.sin((1-t)*omega)/s).add(p2.clone().multiplyScalar(Math.sin(t*omega)/s));}
+    pts.push(v.clone().multiplyScalar(SR+1+Math.sin(t*Math.PI)*(3+omega*5)));
+  }
+  return pts;
+}
+
+/* Arc objects */
+var arcGrp=null,arcObjs=[];
+function buildArcs(){
+  if(arcGrp)scene.remove(arcGrp);
+  arcGrp=new THREE.Group();arcObjs=[];
+  ROUTES.forEach(function(r,i){
+    var pts=slerp3(KHARG.lat,KHARG.lng,r.lat,r.lng,80);
+    var col=new THREE.Color(r.col);
+    var line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0}));
+    var dot=new THREE.Mesh(new THREE.SphereGeometry(0.9+r.vol*1.4,8,8),
+      new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0}));
+    var glow=new THREE.Mesh(new THREE.SphereGeometry(2.2+r.vol*2,8,8),
+      new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0}));
+    arcGrp.add(line);arcGrp.add(dot);arcGrp.add(glow);
+    arcObjs.push({pts:pts,line:line,dot:dot,glow:glow,phase:i/ROUTES.length,speed:0.0006+r.vol*0.0003});
+  });
+  /* Kharg source */
+  var kph=(90-KHARG.lat)*Math.PI/180,kth=(180-KHARG.lng)*Math.PI/180;
+  var kp=new THREE.Vector3((SR+2)*Math.sin(kph)*Math.cos(kth),(SR+2)*Math.cos(kph),(SR+2)*Math.sin(kph)*Math.sin(kth));
+  var ks=new THREE.Mesh(new THREE.SphereGeometry(3,12,12),new THREE.MeshBasicMaterial({color:0xffaa00,transparent:true,opacity:0.9}));
+  ks.position.copy(kp);
+  var kg=new THREE.Mesh(new THREE.SphereGeometry(7,12,12),new THREE.MeshBasicMaterial({color:0xff8800,transparent:true,opacity:0.15}));
+  kg.position.copy(kp);
+  arcGrp.add(ks);arcGrp.add(kg);
+  arcObjs.src=ks;arcObjs.srcG=kg;
+  scene.add(arcGrp);
+}
+
+/* Animate arcs */
+function tickArcs(arcAlpha){
+  if(!arcGrp)return;
+  arcObjs.forEach(function(ao){
+    ao.line.material.opacity=arcAlpha*0.5;
+    var dp=(E*ao.speed*0.001+ao.phase)%1;
+    var di=Math.floor(dp*(ao.pts.length-1)),ni=Math.min(di+1,ao.pts.length-1);
+    ao.dot.position.lerpVectors(ao.pts[di],ao.pts[ni],dp*(ao.pts.length-1)-di);
+    ao.glow.position.copy(ao.dot.position);
+    ao.dot.material.opacity=arcAlpha*(0.7+Math.sin(dp*Math.PI)*0.3);
+    ao.glow.material.opacity=arcAlpha*0.12;
+  });
+  if(arcObjs.src){
+    var p=0.75+Math.sin(E*0.005)*0.25;
+    arcObjs.src.material.opacity=arcAlpha*p;
+    arcObjs.srcG.material.opacity=arcAlpha*0.12;
+    var s=1+Math.sin(E*0.004)*0.12;arcObjs.src.scale.set(s,s,s);
+  }
+}
+
+/* Strike objects */
+var strikeObjs=[];
+function buildStrikes(){
+  strikeObjs=[];
+  STRIKES.forEach(function(s){
+    var ph=(90-s.lat)*Math.PI/180,th=(180-s.lng)*Math.PI/180;
+    var pos=new THREE.Vector3((SR+1.5)*Math.sin(ph)*Math.cos(th),(SR+1.5)*Math.cos(ph),(SR+1.5)*Math.sin(ph)*Math.sin(th));
+    var col=new THREE.Color(s.col);
+    var core=new THREE.Mesh(new THREE.SphereGeometry(2,8,8),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0}));
+    core.position.copy(pos);
+    var ring=new THREE.Mesh(new THREE.RingGeometry(4,5.5,32),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0,side:THREE.DoubleSide}));
+    ring.position.copy(pos);ring.lookAt(0,0,0);
+    scene.add(core);scene.add(ring);
+    strikeObjs.push({core:core,ring:ring,phase:Math.random()*Math.PI*2,data:s});
+  });
+}
+
+/* Thermal mesh */
+var thermalMesh=null;
+function buildThermals(){
+  if(thermalMesh)scene.remove(thermalMesh);
+  var tmpl=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.8,1));tmpl.geometry.translate(0,0,-0.5);
+  var aPos=[],aCol=[],aIdx=[],voff=0;
+  var clusters=[[29.2,50.3],[28.8,50.5],[29.5,49.8],[28.5,51.0],[27.2,56.2],[26.5,54.5],[25.9,51.5],[25.1,56.3]];
+  clusters.forEach(function(c){
+    for(var i=0;i<10;i++){
+      var lat=c[0]+rnd(-0.6,0.6),lng=c[1]+rnd(-0.6,0.6),brt=rnd(315,430);
+      var mag=Math.max(0.01,(brt-300)/300)*0.18;
+      var ph=(90-lat)*Math.PI/180,th=(180-lng)*Math.PI/180;
+      tmpl.position.set(SR*Math.sin(ph)*Math.cos(th),SR*Math.cos(ph),SR*Math.sin(ph)*Math.sin(th));
+      tmpl.lookAt(0,0,0);tmpl.scale.z=Math.max(mag*200,0.5);tmpl.updateMatrix();
+      var tg=new THREE.BoxGeometry(0.8,0.8,1);tg.translate(0,0,-0.5);tg.applyMatrix4(tmpl.matrix);
+      var pa=tg.attributes.position;
+      var ext=brt>400;
+      for(var j=0;j<pa.count;j++){aPos.push(pa.getX(j),pa.getY(j),pa.getZ(j));aCol.push(ext?1:1,ext?0.8:0.5,ext?0.2:0.1);}
+      var ix=tg.index;
+      if(ix){for(var k=0;k<ix.count;k++)aIdx.push(ix.getX(k)+voff);}
+      voff+=pa.count;tg.dispose();
+    }
+  });
+  var geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(aPos,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(aCol,3));
+  if(aIdx.length)geo.setIndex(aIdx);
+  thermalMesh=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0}));
+  scene.add(thermalMesh);
+}
+
+/* ── HUD helpers ── */
+function hScan(){var sy=((E*0.0003)%1)*H;var g=HX.createLinearGradient(0,sy-25,0,sy+25);g.addColorStop(0,'rgba(0,200,100,0)');g.addColorStop(0.5,'rgba(0,200,100,0.04)');g.addColorStop(1,'rgba(0,200,100,0)');HX.fillStyle=g;HX.fillRect(0,sy-25,W,50);}
+function hVig(s){var g=HX.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.7);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(0.6,'rgba(0,0,0,'+(s*0.4)+')');g.addColorStop(1,'rgba(0,0,0,'+s+')');HX.fillStyle=g;HX.fillRect(0,0,W,H);}
+function hBrackets(a,col){col=col||GRN;var bs=22,bo=6;HX.strokeStyle=col;HX.lineWidth=1.5;[[bo,bo,1,1],[W-bo,bo,-1,1],[bo,H-bo,1,-1],[W-bo,H-bo,-1,-1]].forEach(function(c){HX.globalAlpha=a*0.5;HX.beginPath();HX.moveTo(c[0],c[1]+c[3]*bs);HX.lineTo(c[0],c[1]);HX.lineTo(c[0]+c[2]*bs,c[1]);HX.stroke();});HX.globalAlpha=1;}
+function hBar(text,sub,col,a){HX.globalAlpha=a;HX.fillStyle='rgba(0,0,0,0.88)';HX.fillRect(0,0,W,56);HX.fillStyle=col;HX.fillRect(0,0,W,1.5);HX.font='bold 17px '+MONO;HX.fillStyle=col;HX.textAlign='left';HX.fillText(text,20,32);if(sub){HX.font='12px '+MONO;HX.fillStyle='rgba(232,228,220,0.4)';HX.fillText(sub,20,50);}HX.globalAlpha=1;}
+function hCard(x,y,w,h2,col,lbl,big,sub,a){HX.globalAlpha=a;HX.fillStyle='rgba(0,0,0,0.92)';HX.fillRect(x,y,w,h2);HX.fillStyle=col;HX.fillRect(x,y,3,h2);HX.font='10px '+MONO;HX.fillStyle=col+'bb';HX.textAlign='left';HX.fillText(lbl,x+12,y+18);HX.font='italic 900 26px '+SERIF;HX.fillStyle='#e8e4dc';HX.fillText(big,x+12,y+48);if(sub){HX.font='11px '+MONO;HX.fillStyle='rgba(232,228,220,0.4)';HX.fillText(sub,x+12,y+66);}HX.globalAlpha=1;}
+function hMast(a){HX.globalAlpha=a;HX.shadowColor='rgba(0,0,0,0.9)';HX.shadowBlur=8;HX.font='italic 900 20px '+SERIF;HX.fillStyle='#e8e4dc';HX.textAlign='left';HX.fillText('The Signal',24,H-14);HX.fillStyle=ACC;HX.fillText('.',24+HX.measureText('The Signal').width,H-14);HX.font='11px '+MONO;HX.fillStyle=GRN2;HX.fillText('ERA Labs · Persian Gulf Intelligence',24,H-36);HX.shadowBlur=0;HX.globalAlpha=1;}
+
+/* ── PHASE RENDERS ── */
+
+var ph0Flew=false;
+/* Ph0 0-4s: Hold on Gulf — ERA title reveals */
+function renderPh0(t){
+  /* No camera move — stay locked on Gulf */
+  /* Title card */
+  var titleA=eo(cl(t/0.4,0,1));
+  HX.globalAlpha=titleA;
+  HX.fillStyle='rgba(239,68,68,0.08)';HX.fillRect(0,H*0.35,W,54);
+  HX.fillStyle=RED;HX.fillRect(0,H*0.35,W,1.5);HX.fillRect(0,H*0.35+52,W,1);
+  HX.font='15px '+MONO;HX.fillStyle=RED;HX.textAlign='center';
+  HX.fillText('// ERA LABS · GEOPOLITICAL INTELLIGENCE //',W/2,H*0.35+22);
+  HX.font='11px '+MONO;HX.fillStyle='rgba(239,68,68,0.55)';
+  HX.fillText('PERSIAN GULF THEATER · MARCH 2026',W/2,H*0.35+40);
+  HX.globalAlpha=1;
+  var bigA=eo(cl((t-0.3)/0.45,0,1));
+  HX.globalAlpha=bigA;
+  HX.font='italic 900 52px '+SERIF;HX.fillStyle='#e8e4dc';HX.textAlign='center';
+  HX.shadowColor='rgba(0,200,100,0.4)';HX.shadowBlur=20;
+  HX.fillText('The Signal.',W/2,H*0.52);
+  HX.shadowBlur=0;
+  HX.font='13px '+MONO;HX.fillStyle=GRN2;
+  HX.fillText('Live intelligence. Real data. Right now.',W/2,H*0.52+36);
+  HX.globalAlpha=1;
+  hMast(eo(cl((t-0.5)/0.4,0,1)));
+  hBrackets(eo(cl((t-0.2)/0.4,0,1)));
+  hVig(0.4);hScan();
+}
+
+/* Ph1 4-9s: Pull back to full globe */
+var ph1Flew=false;
+function renderPh1(t){
+  if(!ph1Flew){ph1Flew=true;flyTo(Math.PI*1.7892,0.4685,900,4000);}
+  tickCam();
+  /* Also start slow auto-spin */
+  tgt.x+=0.0008;
+  hBrackets(0.6);hMast(0.7);hVig(0.35);hScan();
+  /* "FULL THEATER VIEW" label */
+  var la=eo(cl((t-0.3)/0.3,0,1))*Math.min(1,eo((1-t)/0.15));
+  HX.globalAlpha=la;
+  HX.font='13px '+MONO;HX.fillStyle=GRN2;HX.textAlign='center';
+  HX.fillText('PERSIAN GULF THEATER · FULL VIEW',W/2,H*0.88);
+  HX.globalAlpha=1;
+}
+
+/* Ph2 9-14s: Oil routes ignite */
+var ph2Flew=false;
+function renderPh2(t){
+  if(!ph2Flew){ph2Flew=true;flyTo(Math.PI*1.7892,0.4685,860,800);}
+  tickCam();
+  tgt.x+=0.0008;
+  /* Arcs animate in */
+  tickArcs(eo(cl(t/0.5,0,1)));
+  hBar('✦  OIL ROUTES · KHARG ISLAND','17 destination ports · 1.5M bbl/day',AMB,eo(cl(t/0.3,0,1)));
+  hCard(20,H-130,W-40,72,AMB,'DAILY EXPORT','1.5M bbl/day','Kharg Island → China primary',eo(cl((t-0.4)/0.3,0,1)));
+  hMast(0.7);hBrackets(0.6,AMB);hVig(0.4);hScan();
+}
+
+/* Ph3 14-19s: Dive back into Gulf */
+var ph3Flew=false;
+function renderPh3(t){
+  if(!ph3Flew){ph3Flew=true;flyTo(Math.PI*1.7892,0.4685,500,3200);}
+  tickCam();
+  tickArcs(0.6);
+  /* Screen flash on arrival */
+  if(t>0.65&&t<0.72){HX.globalAlpha=(0.72-t)/0.07*0.35;HX.fillStyle='rgba(0,200,100,0.15)';HX.fillRect(0,0,W,H);HX.globalAlpha=1;}
+  hBar('⚡  TARGET ACQUIRED · PERSIAN GULF','26.5°N 52°E · STRAIT OF HORMUZ',RED,eo(cl((t-0.55)/0.25,0,1)));
+  hMast(0.7);hBrackets(0.8,RED);hVig(0.5);hScan();
+}
+
+/* Ph4 19-23s: Strike targets */
+function renderPh4(t){
+  tickCam();tickArcs(0.5);
+  strikeObjs.forEach(function(so,i){
+    var delay=i*0.12,a=eo(cl((t-delay)/0.35,0,1));
+    var locked=t>(delay+0.4),pulse=0.5+Math.sin(E*0.005+so.phase)*0.5;
+    so.core.material.opacity=a*0.9;so.ring.material.opacity=a*(locked?0.8:0.35);
+    var ps=locked?1+pulse*0.25:1;so.ring.scale.set(ps,ps,1);
+  });
+  hBar('⚠  '+STRIKES.length+' TARGETS IDENTIFIED','Strike locations · March 2026',RED,(0.7+Math.sin(E*0.007)*0.3)*eo(cl(t/0.2,0,1)));
+  hMast(0.7);hBrackets(0.8,RED);hVig(0.5);hScan();
+}
+
+/* Ph5 23-27s: Thermal */
+function renderPh5(t){
+  tickCam();tickArcs(0.45);
+  strikeObjs.forEach(function(so){so.core.material.opacity=0.45;so.ring.material.opacity=0.3;});
+  if(thermalMesh)thermalMesh.material.opacity=eo(cl(t/0.4,0,1))*0.88;
+  var count=Math.round(eo(cl((t-0.1)/0.55,0,1))*76);
+  hBar('🛰  NASA FIRMS · VIIRS SNPP · LIVE THERMAL','Persian Gulf · High confidence · 48hr window',AMB,eo(cl(t/0.25,0,1)));
+  hCard(20,H-130,W-40,72,AMB,'THERMAL DETECTIONS (48HR)',count+' signatures','0 extreme · conflict zone active',eo(cl((t-0.2)/0.3,0,1)));
+  hMast(0.7);hBrackets(0.7,AMB);hVig(0.5);hScan();
+}
+
+/* Ph6 27-32s: Verdict */
+function renderPh6(t){
+  /* Slow pull-back */
+  if(t<0.05)flyTo(Math.PI*1.7892,0.4685,700,4000);
+  tickCam();
+  tgt.x+=0.0005;
+  tickArcs(0.4);
+  strikeObjs.forEach(function(so){var p=0.5+Math.sin(E*0.005+so.phase)*0.5;so.core.material.opacity=0.35;so.ring.material.opacity=p*0.25;});
+  if(thermalMesh)thermalMesh.material.opacity=0.65;
+  /* Verdict card */
+  var vA=eo(cl(t/0.28,0,1));
+  HX.globalAlpha=vA;
+  HX.fillStyle='rgba(0,0,0,0.95)';HX.fillRect(20,H*0.4,W-40,200);
+  HX.fillStyle=GRN;HX.fillRect(20,H*0.4,3,200);
+  HX.font='italic 900 34px '+SERIF;HX.fillStyle='#e8e4dc';HX.textAlign='left';
+  HX.shadowColor='rgba(0,200,100,0.35)';HX.shadowBlur=12;
+  HX.fillText('This is happening',34,H*0.4+44);
+  HX.fillText('right now.',34,H*0.4+82);
+  HX.shadowBlur=0;
+  HX.font='12px '+MONO;HX.fillStyle=GRN2;
+  HX.fillText('Oil routes · Strike targets · Live satellite',34,H*0.4+114);
+  HX.fillText('Live ADS-B flights · NASA FIRMS',34,H*0.4+134);
+  HX.fillStyle='rgba(232,228,220,0.3)';
+  HX.fillText('ERA Intelligence Globe',34,H*0.4+162);
+  HX.globalAlpha=1;
+  /* CTA */
+  var cA=eo(cl((t-0.62)/0.3,0,1));
+  var cy2=lerp(12,0,eo(cl((t-0.62)/0.25,0,1)));
+  HX.globalAlpha=cA;HX.save();HX.translate(0,cy2);
+  HX.fillStyle='rgba(0,0,0,0.97)';HX.fillRect(0,H-68,W,68);
+  HX.fillStyle=GRN;HX.fillRect(0,H-68,W,1.5);
+  HX.font='italic 900 21px '+SERIF;HX.fillStyle='#e8e4dc';HX.textAlign='center';
+  HX.fillText('Explore the globe → link in bio',W/2,H-38);
+  HX.font='12px '+MONO;HX.fillStyle=GRN2;
+  HX.fillText('ERA Labs · thesignal.era',W/2,H-14);
+  HX.restore();HX.globalAlpha=1;
+  hMast(0.8);hBrackets(0.5);hVig(0.55);hScan();
+}
+
+/* ── MAIN LOOP ── */
+function setCam(){
+  rot.x+=(tgt.x-rot.x)*0.07;rot.y+=(tgt.y-rot.y)*0.07;dist+=(distT-dist)*0.06;
+  camera.position.set(dist*Math.sin(rot.x)*Math.cos(rot.y),dist*Math.sin(rot.y),dist*Math.cos(rot.x)*Math.cos(rot.y));
+  camera.lookAt(0,0,0);
+}
+
+function frame(ts){
+  if(!T0)T0=ts;E=ts-T0;
+  setCam();renderer.render(scene,camera);
+  HX.clearRect(0,0,W,H);
+  if(E<PH[1])       renderPh0(cl(E/PH[1],0,1));
+  else if(E<PH[2])  renderPh1(cl((E-PH[1])/(PH[2]-PH[1]),0,1));
+  else if(E<PH[3])  renderPh2(cl((E-PH[2])/(PH[3]-PH[2]),0,1));
+  else if(E<PH[4])  renderPh3(cl((E-PH[3])/(PH[4]-PH[3]),0,1));
+  else if(E<PH[5])  renderPh4(cl((E-PH[4])/(PH[5]-PH[4]),0,1));
+  else if(E<PH[6])  renderPh5(cl((E-PH[5])/(PH[6]-PH[5]),0,1));
+  else              renderPh6(cl((E-PH[6])/(PH[7]-PH[6]),0,1));
+  if(E<TOTAL+800)raf=requestAnimationFrame(frame);
+}
+
+function resetState(){
+  rot={x:Math.PI*1.7892,y:0.4685};tgt={x:Math.PI*1.7892,y:0.4685};dist=811;distT=811;
+  camAnim.on=false;ph1Flew=false;ph2Flew=false;ph3Flew=false;
+  if(arcGrp)arcObjs.forEach(function(ao){ao.line.material.opacity=0;ao.dot.material.opacity=0;ao.glow.material.opacity=0;});
+  if(arcObjs.src){arcObjs.src.material.opacity=0;arcObjs.srcG.material.opacity=0;}
+  strikeObjs.forEach(function(so){so.core.material.opacity=0;so.ring.material.opacity=0;});
+  if(thermalMesh)thermalMesh.material.opacity=0;
+}
+
+function restart(){cancelAnimationFrame(raf);T0=null;E=0;resetState();raf=requestAnimationFrame(frame);}
+
+/* ── RECORDER ── */
+function detectMime(){try{var ts=['video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];for(var i=0;i<ts.length;i++)if(MediaRecorder.isTypeSupported(ts[i]))return ts[i];}catch(e){}return 'video/webm';}
+var MIME=detectMime(),EXT=MIME.startsWith('video/mp4')?'mp4':'webm';
+
+function startRecord(){
+  var btn=document.getElementById('rb'),dot=document.getElementById('sdot');
+  var stEl=document.getElementById('stxt'),fillEl=document.getElementById('fill');
+  var out=document.createElement('canvas');out.width=W;out.height=H;
+  var octx=out.getContext('2d');
+  var recRaf=null;
+  function recFrame(ts){
+    if(!T0)T0=ts;E=ts-T0;
+    setCam();renderer.render(scene,camera);
+    HX.clearRect(0,0,W,H);
+    if(E<PH[1])       renderPh0(cl(E/PH[1],0,1));
+    else if(E<PH[2])  renderPh1(cl((E-PH[1])/(PH[2]-PH[1]),0,1));
+    else if(E<PH[3])  renderPh2(cl((E-PH[2])/(PH[3]-PH[2]),0,1));
+    else if(E<PH[4])  renderPh3(cl((E-PH[3])/(PH[4]-PH[3]),0,1));
+    else if(E<PH[5])  renderPh4(cl((E-PH[4])/(PH[5]-PH[4]),0,1));
+    else if(E<PH[6])  renderPh5(cl((E-PH[5])/(PH[6]-PH[5]),0,1));
+    else              renderPh6(cl((E-PH[6])/(PH[7]-PH[6]),0,1));
+    octx.clearRect(0,0,W,H);octx.drawImage(GL,0,0,W,H);octx.drawImage(HC,0,0,W,H);
+    recRaf=requestAnimationFrame(recFrame);
+  }
+  cancelAnimationFrame(raf);
+  var stream=out.captureStream(60),chunks=[];
+  var recorder=new MediaRecorder(stream,{mimeType:MIME,videoBitsPerSecond:14000000});
+  recorder.ondataavailable=function(ev){if(ev.data&&ev.data.size>0)chunks.push(ev.data);};
+  recorder.onstop=function(){
+    cancelAnimationFrame(recRaf);
+    var blob=new Blob(chunks,{type:MIME}),url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download='era-globe-reel.'+EXT;a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);},5000);
+    btn.textContent='✓ SAVED — era-globe-reel.'+EXT;btn.className='btn done';btn.disabled=false;
+    dot.className='sdot done';stEl.textContent='Downloaded! HandBrake → MP4 → CapCut → post.';
+    fillEl.style.transition='none';fillEl.style.width='100%';
+    restart();
+  };
+  btn.textContent='⏹ RECORDING... (32 sec)';btn.className='btn rec';btn.disabled=true;
+  dot.className='sdot live';stEl.textContent='Recording — keep Chrome visible';
+  fillEl.style.transition='none';fillEl.style.width='0%';
+  requestAnimationFrame(function(){requestAnimationFrame(function(){
+    fillEl.style.transition='width '+TOTAL+'ms linear';fillEl.style.width='100%';
+  });});
+  T0=null;E=0;resetState();
+  recRaf=requestAnimationFrame(recFrame);
+  setTimeout(function(){recorder.start(100);},80);
+  setTimeout(function(){recorder.stop();},TOTAL+400);
+}
+
+/* ── BOOT ── */
+window.addEventListener('load',function(){
+  initGlobe();buildArcs();buildStrikes();buildThermals();
+  restart();
+});
+</script>
+</body>
+</html>
